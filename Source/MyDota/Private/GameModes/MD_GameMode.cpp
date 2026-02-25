@@ -5,7 +5,6 @@
 
 #include "Characters/MD_CharacterBase.h"
 #include "Controllers/MD_PlayerController.h"
-#include "Pawns/MD_CameraPawn.h"
 
 void AMD_GameMode::PostLogin(APlayerController* NewPlayer)
 {
@@ -14,7 +13,8 @@ void AMD_GameMode::PostLogin(APlayerController* NewPlayer)
 	if (!NewPlayer) return;
 	
 	FActorSpawnParameters SpawnParameters;
-	SpawnParameters.Instigator = GetInstigator();
+	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+	//SpawnParameters.Instigator = GetInstigator();
 	
 	FVector SpawnLocation = FVector::ZeroVector;
 	FRotator SpawnRotation = FRotator::ZeroRotator;

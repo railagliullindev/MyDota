@@ -67,6 +67,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Input|Camera")
 	UInputAction* CameraZoomAction;
 	
+	/** Класс героя, который будет заспавнен для этого игрока */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Player Setup")
+	TSubclassOf<AMD_CharacterBase> HeroClass;
+	
 private:
 	FGenericTeamId GenericTeamId;
 	

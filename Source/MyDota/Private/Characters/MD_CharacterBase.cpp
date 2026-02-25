@@ -32,6 +32,8 @@ AMD_CharacterBase::AMD_CharacterBase()
 	MD_AbilitySystemComponent->SetIsReplicated(true);
 	
 	MD_AttributeSet = CreateDefaultSubobject<UMD_AttributeSet>(TEXT("AttributeSet"));
+	
+	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 }
 
 UAbilitySystemComponent* AMD_CharacterBase::GetAbilitySystemComponent() const

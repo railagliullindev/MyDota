@@ -8,8 +8,6 @@
 #include "EnhancedInputSubsystems.h"
 #include "InputAction.h"
 #include "InputMappingContext.h"
-#include "Blueprint/AIBlueprintHelperLibrary.h"
-#include "NavigationSystem.h"
 #include "Characters/MD_CharacterBase.h"
 #include "Net/UnrealNetwork.h"
 
@@ -45,11 +43,17 @@ void AMD_PlayerController::SetHero(AMD_CharacterBase* InHero)
 
 void AMD_PlayerController::OnRep_Hero()
 {
-	if (Hero && IsLocalController())
+	if (IsLocalController())
 	{
-		// Логика на клиенте: например, центрируем камеру на герое при спавне
-		// Или обновляем HUD, связывая его с GAS атрибутами героя
-		UE_LOG(LogTemp, Warning, TEXT("Герой реплицирован и готов к управлению!"));
+		FString RoleString = HasAuthority() ? TEXT("ListenServer-Host") : TEXT("Remote-Client");
+        
+		if (Hero)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[%s] Герой успешно привязан к контроллеру: %s"), 
+				*RoleString, *Hero->GetName());
+                
+			// ТУТ инициализируй HUD или камеру
+		}
 	}
 }
 
@@ -69,10 +73,10 @@ void AMD_PlayerController::BeginPlay()
 		}
 	}
 	
-	if (HasAuthority())
+	/*if (HasAuthority())
 	{
 		SpawnHero();
-	}
+	}*/
 }
 
 void AMD_PlayerController::SetupInputComponent()
@@ -93,6 +97,7 @@ void AMD_PlayerController::InputMove()
 	FHitResult Hit;
 	if (GetHitResultUnderCursor(ECC_Visibility, false, Hit))
 	{
+		UE_LOG(LogTemp, Display, TEXT("InputMove"));
 		Server_MoveToLocation(Hit.ImpactPoint);
 		
 		// Визуал клика
@@ -103,17 +108,44 @@ void AMD_PlayerController::Server_MoveToLocation_Implementation(FVector InLocati
 {
 	if (Hero)
 	{
+		// ИСПРАВЛЕНИЕ ДЛЯ ХОСТА:
+		// Проверяем, не завладел ли случайно PlayerController этим героем
+		if (Hero->GetController() == this)
+		{
+			UE_LOG(LogTemp, Error, TEXT("Хост владеет героем напрямую! AI отключен."));
+			// Если это случилось, нужно сделать UnPossess и дать AI перехватить управление
+			UnPossess(); 
+		}
+
 		AAIController* AIC = Cast<AAIController>(Hero->GetController());
 		if (AIC)
 		{
-			AIC->MoveToLocation(InLocation, 5.f);
+			UE_LOG(LogTemp, Display, TEXT("AI двигает героя в %s"), *InLocation.ToString());
+			AIC->MoveToLocation(InLocation, 5.f, true, true, true);
+		}
+		else
+		{
+			// Если AIC нет, пробуем заставить его заспавниться
+			Hero->SpawnDefaultController();
+			UE_LOG(LogTemp, Warning, TEXT("AI Controller отсутствовал, пробуем заспавнить..."));
 		}
 	}
 }
 
 void AMD_PlayerController::SpawnHero()
-{
+{	
+	// ИСПРАВЛЕНИЕ: Убираем Owner = this. 
+	// Герой должен принадлежать миру или AI, а не напрямую игроку.
 	FActorSpawnParameters SpawnParams;
-	SpawnParams.Owner = this;
-	Hero = GetWorld()->SpawnActor<AMD_CharacterBase>(AMD_CharacterBase::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
+	SpawnParams.Owner = nullptr; // <--- КРИТИЧНО для MOBA
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+
+	// Спавним
+	Hero = GetWorld()->SpawnActor<AMD_CharacterBase>(HeroClass, FVector(0,0,100), FRotator::ZeroRotator, SpawnParams);
+    
+	if (Hero)
+	{
+		// Ручной вызов, так как на сервере OnRep не стреляет сам
+		OnRep_Hero(); 
+	}
 }
