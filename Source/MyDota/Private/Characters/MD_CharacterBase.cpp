@@ -29,6 +29,8 @@ AMD_CharacterBase::AMD_CharacterBase()
 	
 	// Setup Ability components
 	MD_AbilitySystemComponent = CreateDefaultSubobject<UMD_AbilitySystemComponent>(TEXT("AbilitySystem"));
+	MD_AbilitySystemComponent->SetIsReplicated(true);
+	
 	MD_AttributeSet = CreateDefaultSubobject<UMD_AttributeSet>(TEXT("AttributeSet"));
 }
 

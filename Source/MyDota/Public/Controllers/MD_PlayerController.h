@@ -7,6 +7,7 @@
 #include "GenericTeamAgentInterface.h"
 #include "MD_PlayerController.generated.h"
 
+class AMD_CharacterBase;
 class UInputMappingContext;
 class UInputAction;
 struct FInputActionValue;
@@ -26,12 +27,28 @@ public:
 	virtual FGenericTeamId GetGenericTeamId() const override;
 	//~ End IGenericTeamAgentInterface Interface
 
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+
+	void SetHero(AMD_CharacterBase* InHero);
+	
+	UFUNCTION()
+	void OnRep_Hero();
+	
+	FORCEINLINE AMD_CharacterBase* GetHero() const {return Hero;}
+	
 protected:
 	virtual void BeginPlay() override;
 	virtual void SetupInputComponent() override;
 
-	/** Called when click-to-move input is triggered */
-	void HandleClickMove();
+	UPROPERTY(ReplicatedUsing = OnRep_Hero)
+	AMD_CharacterBase* Hero;
+	
+	void InputMove();
+	
+	UFUNCTION(Server, Reliable)
+	void Server_MoveToLocation(FVector InLocation);
+	
+	void SpawnHero();
 
 protected:
 	/** Mapping context that contains click-to-move binding */
