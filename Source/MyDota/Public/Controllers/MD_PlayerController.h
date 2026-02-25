@@ -43,4 +43,6 @@ protected:
 	
 private:
 	FGenericTeamId GenericTeamId;
+	
+	FVector CachedDestination;
 };

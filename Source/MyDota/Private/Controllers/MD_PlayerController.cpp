@@ -53,9 +53,9 @@ void AMD_PlayerController::SetupInputComponent()
 }
 
 void AMD_PlayerController::HandleClickMove()
-{
+{	
 	FHitResult HitResult;
-	if (!GetHitResultUnderCursor(ECC_Visibility, /*bTraceComplex*/false, HitResult))
+	if (!GetHitResultUnderCursor(ECC_Visibility, false, HitResult))
 	{
 		return;
 	}
@@ -67,8 +67,7 @@ void AMD_PlayerController::HandleClickMove()
 	{
 		return;
 	}
-
-	// Optional: project onto navmesh to ensure valid location
+	
 	FNavLocation ProjectedLocation;
 	if (NavSys->ProjectPointToNavigation(Destination, ProjectedLocation))
 	{
