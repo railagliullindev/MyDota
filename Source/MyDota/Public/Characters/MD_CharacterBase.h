@@ -7,8 +7,6 @@
 #include "AbilitySystemInterface.h"
 #include "MD_CharacterBase.generated.h"
 
-class UCameraComponent;
-class USpringArmComponent;
 class UMD_AttributeSet;
 class UMD_AbilitySystemComponent;
 
@@ -26,8 +24,7 @@ public:
 	
 	FORCEINLINE UMD_AbilitySystemComponent* GetMDAbilitySystemComponent() const {return MD_AbilitySystemComponent;}
 	FORCEINLINE UMD_AttributeSet* GetMDAttributeSet() const {return MD_AttributeSet;}
-	FORCEINLINE UCameraComponent* GetTopDownCameraComponent() const {return TopDownCameraComponent;}
-	FORCEINLINE USpringArmComponent* GetCameraBoom() const {return CameraBoom;}
+
 	
 protected:
 	
@@ -36,11 +33,4 @@ protected:
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AbilitySystem")
 	UMD_AttributeSet* MD_AttributeSet;
-
-private:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera", meta = (AllowPrivateAccess = "true"))
-	USpringArmComponent* CameraBoom;
-	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera", meta = (AllowPrivateAccess = "true"))
-	UCameraComponent* TopDownCameraComponent;
 };

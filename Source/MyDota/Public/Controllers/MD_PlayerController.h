@@ -9,6 +9,7 @@
 
 class UInputMappingContext;
 class UInputAction;
+struct FInputActionValue;
 
 /**
  * 
@@ -40,6 +41,14 @@ protected:
 	/** Input action that is bound to mouse click for movement */
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	UInputAction* ClickMoveAction;
+
+	/** Input action for camera movement */
+	UPROPERTY(EditDefaultsOnly, Category = "Input|Camera")
+	UInputAction* CameraMoveAction;
+
+	/** Input action for camera zoom */
+	UPROPERTY(EditDefaultsOnly, Category = "Input|Camera")
+	UInputAction* CameraZoomAction;
 	
 private:
 	FGenericTeamId GenericTeamId;
