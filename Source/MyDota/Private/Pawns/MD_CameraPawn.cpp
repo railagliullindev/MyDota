@@ -7,6 +7,7 @@
 #include "Components/SceneComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 AMD_CameraPawn::AMD_CameraPawn()
 {
@@ -27,7 +28,7 @@ AMD_CameraPawn::AMD_CameraPawn()
 	CameraBoom->SetupAttachment(RootComponent);
 	CameraBoom->SetUsingAbsoluteRotation(true);
 	CameraBoom->TargetArmLength = 1500.f;
-	CameraBoom->SetRelativeRotation(FRotator(-50.f, 0.f, 0.f));
+	CameraBoom->SetRelativeRotation(FRotator(-50.f, -45.f, 0.f));
 	CameraBoom->bDoCollisionTest = false;
 	
 	// Create the camera component
@@ -37,11 +38,31 @@ AMD_CameraPawn::AMD_CameraPawn()
 	CameraComponent->bUsePawnControlRotation = false;
 }
 
+void AMD_CameraPawn::BeginPlay()
+{
+	Super::BeginPlay();
+	
+	TArray<AActor*> FoundVolumes;
+	UGameplayStatics::GetAllActorsWithTag(GetWorld(), FName("CameraLimit"), FoundVolumes);
+	if (FoundVolumes.Num() > 0)
+	{
+		CameraBounds = FoundVolumes[0]->GetComponentsBoundingBox();
+	}
+}
+
 void AMD_CameraPawn::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
 	TryMoveToCameraOnEdge();
+}
+
+void AMD_CameraPawn::ClampCameraLocation(FVector& OutLocation)
+{
+	if (CameraBounds.IsValid == 0) return;
+	
+	OutLocation.X = FMath::Clamp(OutLocation.X, CameraBounds.Min.X, CameraBounds.Max.X);
+	OutLocation.Y = FMath::Clamp(OutLocation.Y, CameraBounds.Min.Y, CameraBounds.Max.Y);
 }
 
 void AMD_CameraPawn::TryMoveToCameraOnEdge()
@@ -109,29 +130,27 @@ void AMD_CameraPawn::TryMoveToCameraOnEdge()
 
 void AMD_CameraPawn::HandleCameraMove(const FVector2D& Input)
 {
-	if (Input.IsNearlyZero())
-	{
-		return;
-	}
+	if (Input.IsNearlyZero()) return;
 
 	const float DeltaSeconds = GetWorld() ? GetWorld()->GetDeltaSeconds() : 0.f;
-	if (DeltaSeconds <= 0.f)
-	{
-		return;
-	}
-
-	FVector Forward = GetActorForwardVector();
+	if (DeltaSeconds <= 0.f) return;
+	
+	FVector Forward = CameraComponent->GetForwardVector();
 	Forward.Z = 0.f;
 	Forward.Normalize();
 
-	FVector Right = GetActorRightVector();
+	FVector Right = CameraComponent->GetRightVector();
 	Right.Z = 0.f;
 	Right.Normalize();
 
-	const FVector Movement =
-		(Forward * Input.Y + Right * Input.X) * MoveSpeed * DeltaSeconds;
+	// 1. Считаем желаемое смещение
+	const FVector Movement = (Forward * Input.Y + Right * Input.X) * MoveSpeed * DeltaSeconds;
+	
+	FVector NewLocation = GetActorLocation() + Movement;
+	ClampCameraLocation(NewLocation);
 
-	AddActorWorldOffset(Movement, false);
+	// 4. Устанавливаем итоговую позицию (вместо AddActorWorldOffset)
+	SetActorLocation(NewLocation);
 }
 
 void AMD_CameraPawn::HandleCameraZoom(float AxisValue)

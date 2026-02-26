@@ -18,6 +18,8 @@ class MYDOTA_API AMD_CameraPawn : public APawn
 public:
 	AMD_CameraPawn();
 	
+	virtual void BeginPlay() override;
+	
 	FORCEINLINE UCameraComponent* GetTopDownCameraComponent() const {return CameraComponent;}
 	FORCEINLINE USpringArmComponent* GetCameraBoom() const {return CameraBoom;}
 
@@ -54,7 +56,12 @@ protected:
 	/** Размер зоны, считающейся "краем экрана", в пикселях */
 	UPROPERTY(EditAnywhere, Category = "Camera|EdgeScroll", meta = (ClampMin = "1.0"))
 	float EdgeScrollThreshold = 40.f;
-
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
+	FBox CameraBounds;
+	
+	void ClampCameraLocation(FVector& OutLocation);
+	
 private:
 	
 	void TryMoveToCameraOnEdge();
