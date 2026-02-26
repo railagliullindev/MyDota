@@ -11,6 +11,7 @@
 #include "Blueprint/UserWidget.h"
 #include "Characters/MD_CharacterBase.h"
 #include "GameFrameworks/MD_PlayerState.h"
+#include "GameModes/MD_GameMode.h"
 #include "Net/UnrealNetwork.h"
 
 AMD_PlayerController::AMD_PlayerController()
@@ -67,53 +68,28 @@ void AMD_PlayerController::OnRep_Hero()
 	}
 }
 
-void AMD_PlayerController::HideDraftWidget_Implementation()
+void AMD_PlayerController::SetMatchMode_Implementation(EMathStage InMatchStage)
 {
-	if (DraftWidget)
+	MatchStage = InMatchStage;
+	
+	switch (MatchStage)
 	{
-		DraftWidget->RemoveFromParent();
-		DraftWidget = nullptr;
-        
-		/*// Возвращаем управление в игру
-		FInputModeGameOnly InputMode;
-		SetInputMode(InputMode);
-		bShowMouseCursor = true; // Для Dota-управления*/
-        
-		UE_LOG(LogTemp, Log, TEXT("Виджет драфта скрыт на клиенте!"));
+	case EMathStage::Draft:
+		OnDraftMode();
+		break;
+	case EMathStage::PreGame:
+		break;
+	case EMathStage::InProgress:
+		OnMatchMode();
+		break;
+	case EMathStage::PostGame:
+		break;
 	}
 }
 
 void AMD_PlayerController::BeginPlay()
 {
 	Super::BeginPlay();
-
-	if (ULocalPlayer* LocalPlayer = GetLocalPlayer())
-	{
-		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
-		{
-			if (ClickMoveMappingContext)
-			{
-				Subsystem->AddMappingContext(ClickMoveMappingContext, /*Priority*/0);
-			}
-		}
-	}
-	
-	// Создаем UI только для локального игрока (на клиенте)
-	if (IsLocalController() && DraftWidgetClass)
-	{
-		DraftWidget = CreateWidget<UUserWidget>(this, DraftWidgetClass);
-		if (DraftWidget)
-		{
-			DraftWidget->AddToViewport();
-            
-			// Настраиваем мышь, чтобы можно было кликать по кнопкам
-			FInputModeGameAndUI InputMode;
-			InputMode.SetWidgetToFocus(DraftWidget->GetCachedWidget());
-			InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
-			SetInputMode(InputMode);
-			bShowMouseCursor = true;
-		}
-	}
 }
 
 void AMD_PlayerController::SetupInputComponent()
@@ -134,7 +110,6 @@ void AMD_PlayerController::InputMove()
 	FHitResult Hit;
 	if (GetHitResultUnderCursor(ECC_Visibility, false, Hit))
 	{
-		UE_LOG(LogTemp, Display, TEXT("InputMove"));
 		Server_MoveToLocation(Hit.ImpactPoint);
 		
 		// Визуал клика
@@ -174,5 +149,48 @@ void AMD_PlayerController::SpawnHero()
 	if (Hero)
 	{
 		OnRep_Hero(); 
+	}
+}
+
+void AMD_PlayerController::OnDraftMode()
+{
+	if (IsLocalController() && DraftWidgetClass)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("PC to draft mode success"));
+		DraftWidget = CreateWidget<UUserWidget>(this, DraftWidgetClass);
+		if (DraftWidget)
+		{            
+			DraftWidget->AddToViewport(0);
+			FInputModeUIOnly InputMode;
+			InputMode.SetWidgetToFocus(DraftWidget->GetCachedWidget());
+			InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::LockAlways);
+			SetInputMode(InputMode);
+			bShowMouseCursor = true;
+		}
+	}
+}
+
+void AMD_PlayerController::OnMatchMode()
+{
+	if (DraftWidget)
+	{
+		DraftWidget->RemoveFromParent();
+		DraftWidget = nullptr;
+		
+		FInputModeGameAndUI InputMode;
+		InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::LockAlways);
+		SetInputMode(InputMode);
+		bShowMouseCursor = true;
+	}
+	
+	if (ULocalPlayer* LocalPlayer = GetLocalPlayer())
+	{
+		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
+		{
+			if (ClickMoveMappingContext)
+			{
+				Subsystem->AddMappingContext(ClickMoveMappingContext,0);
+			}
+		}
 	}
 }

@@ -6,7 +6,19 @@
 #include "GameFramework/GameMode.h"
 #include "MD_GameMode.generated.h"
 
+class AMD_GameState;
 class AMD_CharacterBase;
+
+
+UENUM()
+enum EMathStage : uint8
+{
+	Draft,
+	PreGame,
+	InProgress,
+	PostGame
+};
+
 /**
  * 
  */
@@ -18,17 +30,26 @@ class MYDOTA_API AMD_GameMode : public AGameMode
 public:
 	AMD_GameMode();
 	
+	virtual void BeginPlay() override;
 	virtual void PostLogin(APlayerController* NewPlayer) override;
-	virtual void StartMatch() override;
+	
+	void SetMatchStage(EMathStage NewStage);
 	
 protected:
+	
+	void Draft();
+	void PreGame();
+	void InProgress();
+	void PostGame();
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Classes")
 	TSubclassOf<APawn> CameraPawnClass;
 	
-	UPROPERTY(EditDefaultsOnly, Category = "Classes")
-	TSubclassOf<AMD_CharacterBase> HeroClass;
+	EMathStage MatchStage;
 	
+	UPROPERTY()
+	AMD_GameState* MD_GameState;
 private:
+	
 	bool bIsTeamA;
 };

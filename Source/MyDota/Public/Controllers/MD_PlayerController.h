@@ -7,6 +7,7 @@
 #include "GenericTeamAgentInterface.h"
 #include "MD_PlayerController.generated.h"
 
+enum EMathStage : uint8;
 class AMD_CharacterBase;
 class UInputMappingContext;
 class UInputAction;
@@ -38,8 +39,8 @@ public:
 	
 	FORCEINLINE AMD_CharacterBase* GetHero() const {return Hero;}
 	
-	UFUNCTION(Client, Reliable, BlueprintCallable, Category = "UI")
-	void HideDraftWidget();
+	UFUNCTION(Client, Reliable, Category = "MatchStage")
+	void SetMatchMode(EMathStage InMatchStage);
 	
 protected:
 	
@@ -61,6 +62,12 @@ protected:
 	
 	UPROPERTY()
 	UUserWidget* DraftWidget;
+	
+	UFUNCTION()
+	void OnDraftMode();
+	UFUNCTION()
+	void OnMatchMode();
+	
 	
 protected:
 	/** Mapping context that contains click-to-move binding */
@@ -84,7 +91,8 @@ protected:
 	TSubclassOf<AMD_CharacterBase> HeroClass;
 	
 private:
-	FGenericTeamId GenericTeamId;
 	
+	FGenericTeamId GenericTeamId;
+	EMathStage MatchStage;
 	FVector CachedDestination;
 };

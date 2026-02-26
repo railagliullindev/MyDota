@@ -40,7 +40,7 @@ void AMD_GameState::MarkHeroAsPicked(TSubclassOf<AMD_CharacterBase> InHeroClass)
 		{
 			if (AMD_GameMode* GM = Cast<AMD_GameMode>(GetWorld()->GetAuthGameMode()))
 			{
-				GM->StartMatch();
+				GM->SetMatchStage(InProgress);
 			}
 		}
 	}

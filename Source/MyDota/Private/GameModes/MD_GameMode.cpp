@@ -16,11 +16,30 @@ AMD_GameMode::AMD_GameMode()
 	bIsTeamA = true;
 }
 
+void AMD_GameMode::BeginPlay()
+{
+	Super::BeginPlay();
+	
+	MD_GameState = GetGameState<AMD_GameState>();
+	checkf(MD_GameState, TEXT("Game state is not AMD_GameState"));
+	
+	SetMatchStage(EMathStage::Draft);
+}
+
 void AMD_GameMode::PostLogin(APlayerController* NewPlayer)
 {
+	if (MatchStage != EMathStage::Draft) return;
+	if (!NewPlayer) return;
+	
 	Super::PostLogin(NewPlayer);
 	
-	if (!NewPlayer) return;
+	// Установка стороны
+	AMD_PlayerState* PS = NewPlayer->GetPlayerState<AMD_PlayerState>();
+	if (PS)
+	{
+		PS->bIsTeamA = bIsTeamA;
+		bIsTeamA = !bIsTeamA;
+	}
 	
 	FActorSpawnParameters SpawnParameters;
 	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
@@ -40,15 +59,50 @@ void AMD_GameMode::PostLogin(APlayerController* NewPlayer)
 		NewPlayer->Possess(CameraPawn);
 	}
 	
-	AMD_PlayerState* PS = NewPlayer->GetPlayerState<AMD_PlayerState>();
-	if (PS)
+	AMD_PlayerController* PC = Cast<AMD_PlayerController>(NewPlayer);
+	if (PC)
 	{
-		PS->bIsTeamA = bIsTeamA;
-		bIsTeamA = !bIsTeamA;
+		PC->SetMatchMode(EMathStage::Draft);
+	}
+	
+}
+
+void AMD_GameMode::SetMatchStage(EMathStage NewStage)
+{
+	//if (MatchStage >= NewStage) return;
+	
+	MatchStage = NewStage;
+	
+	switch (MatchStage)
+	{
+	case EMathStage::Draft:
+		UE_LOG(LogTemp, Warning, TEXT("AMD_GameMode::SetMatchStage DRAFT"));
+		Draft();
+		break;
+	case EMathStage::PreGame:
+		UE_LOG(LogTemp, Warning, TEXT("AMD_GameMode::SetMatchStage PRE GAME"));
+		break;
+	case EMathStage::InProgress:
+		UE_LOG(LogTemp, Warning, TEXT("AMD_GameMode::SetMatchStage IN PROGRESS"));
+		InProgress();
+		break;
+	case EMathStage::PostGame:
+		UE_LOG(LogTemp, Warning, TEXT("AMD_GameMode::SetMatchStage POST GAME"));
+		break;
 	}
 }
 
-void AMD_GameMode::StartMatch()
+void AMD_GameMode::Draft()
+{
+	
+}
+
+void AMD_GameMode::PreGame()
+{
+	
+}
+
+void AMD_GameMode::InProgress()
 {
 	// Проходим по всем контроллерам в матче
 	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
@@ -63,10 +117,8 @@ void AMD_GameMode::StartMatch()
 		
 		// Проверяем, выбрал ли игрок героя
 		if (PS && PS->SelectedHeroClass)
-		{
-			UE_LOG(LogTemp, Log, TEXT("[%s]%s PS Valid, HideDraftWidget"),*RoleString, *PC->GetName());
-			
-			PC->HideDraftWidget();
+		{			
+			PC->SetMatchMode(MatchStage);
 			
 			// Находим точку спавна (например, PlayerStart)
 			AActor* SpawnPoint = FindPlayerStart(PC);
@@ -81,10 +133,7 @@ void AMD_GameMode::StartMatch()
 
 			if (NewHero)
 			{
-				// 4. Привязываем героя к контроллеру (наша старая функция)
 				PC->SetHero(NewHero);
-				
-				// Опционально: можно переместить камеру к герою или удалить DraftCamera
 			}
 		}
 		else
@@ -92,6 +141,9 @@ void AMD_GameMode::StartMatch()
 			UE_LOG(LogTemp, Error, TEXT("Игрок %s не выбрал героя к началу матча!"), *PC->GetName());
 		}
 	}
+}
+
+void AMD_GameMode::PostGame()
+{
 	
-	Super::StartMatch();
 }
