@@ -8,7 +8,9 @@
 #include "EnhancedInputSubsystems.h"
 #include "InputAction.h"
 #include "InputMappingContext.h"
+#include "Blueprint/UserWidget.h"
 #include "Characters/MD_CharacterBase.h"
+#include "GameFrameworks/MD_PlayerState.h"
 #include "Net/UnrealNetwork.h"
 
 AMD_PlayerController::AMD_PlayerController()
@@ -29,6 +31,14 @@ void AMD_PlayerController::GetLifetimeReplicatedProps(TArray<class FLifetimeProp
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	
 	DOREPLIFETIME(AMD_PlayerController, Hero);
+}
+
+void AMD_PlayerController::SelectHero(TSubclassOf<AMD_CharacterBase> InHeroClass)
+{
+	if (AMD_PlayerState* PS = GetPlayerState<AMD_PlayerState>())
+	{
+		PS->Server_SetSelectedHero(InHeroClass);
+	}
 }
 
 void AMD_PlayerController::SetHero(AMD_CharacterBase* InHero)
@@ -57,6 +67,21 @@ void AMD_PlayerController::OnRep_Hero()
 	}
 }
 
+void AMD_PlayerController::HideDraftWidget_Implementation()
+{
+	if (DraftWidget)
+	{
+		DraftWidget->RemoveFromParent();
+		DraftWidget = nullptr;
+        
+		/*// Возвращаем управление в игру
+		FInputModeGameOnly InputMode;
+		SetInputMode(InputMode);
+		bShowMouseCursor = true; // Для Dota-управления*/
+        
+		UE_LOG(LogTemp, Log, TEXT("Виджет драфта скрыт на клиенте!"));
+	}
+}
 
 void AMD_PlayerController::BeginPlay()
 {
@@ -73,10 +98,22 @@ void AMD_PlayerController::BeginPlay()
 		}
 	}
 	
-	/*if (HasAuthority())
+	// Создаем UI только для локального игрока (на клиенте)
+	if (IsLocalController() && DraftWidgetClass)
 	{
-		SpawnHero();
-	}*/
+		DraftWidget = CreateWidget<UUserWidget>(this, DraftWidgetClass);
+		if (DraftWidget)
+		{
+			DraftWidget->AddToViewport();
+            
+			// Настраиваем мышь, чтобы можно было кликать по кнопкам
+			FInputModeGameAndUI InputMode;
+			InputMode.SetWidgetToFocus(DraftWidget->GetCachedWidget());
+			InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+			SetInputMode(InputMode);
+			bShowMouseCursor = true;
+		}
+	}
 }
 
 void AMD_PlayerController::SetupInputComponent()
@@ -123,29 +160,19 @@ void AMD_PlayerController::Server_MoveToLocation_Implementation(FVector InLocati
 			UE_LOG(LogTemp, Display, TEXT("AI двигает героя в %s"), *InLocation.ToString());
 			AIC->MoveToLocation(InLocation, 5.f, true, true, true);
 		}
-		else
-		{
-			// Если AIC нет, пробуем заставить его заспавниться
-			Hero->SpawnDefaultController();
-			UE_LOG(LogTemp, Warning, TEXT("AI Controller отсутствовал, пробуем заспавнить..."));
-		}
 	}
 }
 
 void AMD_PlayerController::SpawnHero()
 {	
-	// ИСПРАВЛЕНИЕ: Убираем Owner = this. 
-	// Герой должен принадлежать миру или AI, а не напрямую игроку.
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.Owner = nullptr; // <--- КРИТИЧНО для MOBA
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
-	// Спавним
 	Hero = GetWorld()->SpawnActor<AMD_CharacterBase>(HeroClass, FVector(0,0,100), FRotator::ZeroRotator, SpawnParams);
     
 	if (Hero)
 	{
-		// Ручной вызов, так как на сервере OnRep не стреляет сам
 		OnRep_Hero(); 
 	}
 }

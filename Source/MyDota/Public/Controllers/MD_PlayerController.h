@@ -29,14 +29,20 @@ public:
 
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
-	void SetHero(AMD_CharacterBase* InHero);
+	UFUNCTION(BlueprintCallable, Category = "Draft")
+	void SelectHero(TSubclassOf<AMD_CharacterBase> InHeroClass);
 	
+	void SetHero(AMD_CharacterBase* InHero);
 	UFUNCTION()
 	void OnRep_Hero();
 	
 	FORCEINLINE AMD_CharacterBase* GetHero() const {return Hero;}
 	
+	UFUNCTION(Client, Reliable, BlueprintCallable, Category = "UI")
+	void HideDraftWidget();
+	
 protected:
+	
 	virtual void BeginPlay() override;
 	virtual void SetupInputComponent() override;
 
@@ -50,6 +56,12 @@ protected:
 	
 	void SpawnHero();
 
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TSubclassOf<UUserWidget> DraftWidgetClass;
+	
+	UPROPERTY()
+	UUserWidget* DraftWidget;
+	
 protected:
 	/** Mapping context that contains click-to-move binding */
 	UPROPERTY(EditDefaultsOnly, Category = "Input")

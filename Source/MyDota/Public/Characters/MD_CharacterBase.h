@@ -24,7 +24,9 @@ public:
 	
 	FORCEINLINE UMD_AbilitySystemComponent* GetMDAbilitySystemComponent() const {return MD_AbilitySystemComponent;}
 	FORCEINLINE UMD_AttributeSet* GetMDAttributeSet() const {return MD_AttributeSet;}
-
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	FName HeroName = "Axe";
 	
 protected:
 	

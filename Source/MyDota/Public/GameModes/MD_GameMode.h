@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/GameModeBase.h"
+#include "GameFramework/GameMode.h"
 #include "MD_GameMode.generated.h"
 
 class AMD_CharacterBase;
@@ -11,13 +11,15 @@ class AMD_CharacterBase;
  * 
  */
 UCLASS()
-class MYDOTA_API AMD_GameMode : public AGameModeBase
+class MYDOTA_API AMD_GameMode : public AGameMode
 {
 	GENERATED_BODY()
 	
 public:
+	AMD_GameMode();
 	
 	virtual void PostLogin(APlayerController* NewPlayer) override;
+	virtual void StartMatch() override;
 	
 protected:
 	
@@ -26,4 +28,7 @@ protected:
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Classes")
 	TSubclassOf<AMD_CharacterBase> HeroClass;
+	
+private:
+	bool bIsTeamA;
 };

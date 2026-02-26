@@ -5,6 +5,16 @@
 
 #include "Characters/MD_CharacterBase.h"
 #include "Controllers/MD_PlayerController.h"
+#include "GameFrameworks/MD_GameState.h"
+#include "GameFrameworks/MD_PlayerState.h"
+
+AMD_GameMode::AMD_GameMode()
+{
+	PlayerControllerClass = AMD_PlayerController::StaticClass();
+	PlayerStateClass = AMD_PlayerState::StaticClass();
+	GameStateClass = AMD_GameState::StaticClass();
+	bIsTeamA = true;
+}
 
 void AMD_GameMode::PostLogin(APlayerController* NewPlayer)
 {
@@ -14,7 +24,6 @@ void AMD_GameMode::PostLogin(APlayerController* NewPlayer)
 	
 	FActorSpawnParameters SpawnParameters;
 	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-	//SpawnParameters.Instigator = GetInstigator();
 	
 	FVector SpawnLocation = FVector::ZeroVector;
 	FRotator SpawnRotation = FRotator::ZeroRotator;
@@ -31,12 +40,58 @@ void AMD_GameMode::PostLogin(APlayerController* NewPlayer)
 		NewPlayer->Possess(CameraPawn);
 	}
 	
-	AMD_CharacterBase* Hero = GetWorld()->SpawnActor<AMD_CharacterBase>(HeroClass, SpawnLocation, SpawnRotation, SpawnParameters);
-	if (Hero)
+	AMD_PlayerState* PS = NewPlayer->GetPlayerState<AMD_PlayerState>();
+	if (PS)
 	{
-		if (AMD_PlayerController* DotaPC = Cast<AMD_PlayerController>(NewPlayer))
+		PS->bIsTeamA = bIsTeamA;
+		bIsTeamA = !bIsTeamA;
+	}
+}
+
+void AMD_GameMode::StartMatch()
+{
+	// Проходим по всем контроллерам в матче
+	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+	{
+		AMD_PlayerController* PC = Cast<AMD_PlayerController>(It->Get());
+		if (!PC) continue;
+
+		FString RoleString = HasAuthority() ? TEXT("ListenServer-Host") : TEXT("Remote-Client");
+		UE_LOG(LogTemp, Log, TEXT("[%s] Перевод на старт - %s"),*RoleString, *PC->GetName());
+		
+		AMD_PlayerState* PS = PC->GetPlayerState<AMD_PlayerState>();
+		
+		// Проверяем, выбрал ли игрок героя
+		if (PS && PS->SelectedHeroClass)
 		{
-			DotaPC->SetHero(Hero);
+			UE_LOG(LogTemp, Log, TEXT("[%s]%s PS Valid, HideDraftWidget"),*RoleString, *PC->GetName());
+			
+			PC->HideDraftWidget();
+			
+			// Находим точку спавна (например, PlayerStart)
+			AActor* SpawnPoint = FindPlayerStart(PC);
+			FVector Loc = SpawnPoint ? SpawnPoint->GetActorLocation() : FVector::ZeroVector;
+
+			FActorSpawnParameters HeroSpawnParams;
+			HeroSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+
+			// 3. Спавним именно тот класс, который лежит в PlayerState
+			AMD_CharacterBase* NewHero = GetWorld()->SpawnActor<AMD_CharacterBase>(
+				PS->SelectedHeroClass, Loc, FRotator::ZeroRotator, HeroSpawnParams);
+
+			if (NewHero)
+			{
+				// 4. Привязываем героя к контроллеру (наша старая функция)
+				PC->SetHero(NewHero);
+				
+				// Опционально: можно переместить камеру к герою или удалить DraftCamera
+			}
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("Игрок %s не выбрал героя к началу матча!"), *PC->GetName());
 		}
 	}
+	
+	Super::StartMatch();
 }
