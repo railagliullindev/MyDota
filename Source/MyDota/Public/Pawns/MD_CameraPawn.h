@@ -37,13 +37,9 @@ public:
 
 protected:
 	virtual void Tick(float DeltaSeconds) override;
-
-public:
-
-	/** Зум камеры (обычно привязан к колесику мыши) */
-	void HandleCameraZoom(float AxisValue);
-
-protected:
+	
+	void ClampCameraLocation(FVector& OutLocation);
+	
 	/** Скорость перемещения камеры по карте */
 	UPROPERTY(EditAnywhere, Category = "Camera|Movement")
 	float MoveSpeed = 2000.f;
@@ -73,8 +69,6 @@ protected:
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
 	FBox CameraBounds;
-	
-	void ClampCameraLocation(FVector& OutLocation);
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	UMD_AbilitySystemComponent* AbilitySystem;

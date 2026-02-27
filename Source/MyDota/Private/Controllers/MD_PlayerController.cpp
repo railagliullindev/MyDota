@@ -47,6 +47,7 @@ void AMD_PlayerController::SelectHero(TSubclassOf<AMD_CharacterBase> InHeroClass
 
 void AMD_PlayerController::SetHero(AMD_CharacterBase* InHero)
 {
+	UE_LOG(LogTemp, Warning, TEXT("SetHero"));
 	if (HasAuthority())
 	{
 		Hero = InHero;

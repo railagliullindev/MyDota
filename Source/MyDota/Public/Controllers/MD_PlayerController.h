@@ -7,7 +7,6 @@
 #include "GenericTeamAgentInterface.h"
 #include "MD_PlayerController.generated.h"
 
-enum EMathStage : uint8;
 class AMD_CharacterBase;
 class UInputMappingContext;
 class UInputAction;

@@ -228,26 +228,3 @@ void AMD_CameraPawn::HandleCameraMove(const FVector2D& Input)
 	SetActorLocation(NewLocation);
 }
 
-void AMD_CameraPawn::HandleCameraZoom(float AxisValue)
-{
-	if (!CameraBoom || FMath::IsNearlyZero(AxisValue))
-	{
-		return;
-	}
-
-	const float DeltaSeconds = GetWorld() ? GetWorld()->GetDeltaSeconds() : 0.f;
-	if (DeltaSeconds <= 0.f)
-	{
-		return;
-	}
-
-	const float ZoomDelta = -AxisValue * ZoomSpeed * DeltaSeconds;
-
-	const float NewArmLength = FMath::Clamp(
-		CameraBoom->TargetArmLength + ZoomDelta,
-		MinZoomDistance,
-		MaxZoomDistance);
-
-	CameraBoom->TargetArmLength = NewArmLength;
-}
-

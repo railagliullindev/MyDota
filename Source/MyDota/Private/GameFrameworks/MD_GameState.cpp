@@ -12,8 +12,35 @@ void AMD_GameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLif
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	
 	DOREPLIFETIME(AMD_GameState, PickedHeroClasses);
+	DOREPLIFETIME(AMD_GameState, MathStage);
 }
 
+void AMD_GameState::OnRep_MatchStage()
+{
+	switch (MathStage)
+	{
+		case EMathStage::InProgress:
+			UE_LOG(LogTemp, Warning, TEXT("Клиент: Игра началась"));
+			break;
+		case EMathStage::Draft:
+			UE_LOG(LogTemp, Warning, TEXT("Клиент: Начался драфт"));
+			break;
+		
+		default:
+			break;
+	}
+}
+
+
+void AMD_GameState::SetMatchStage(EMathStage NewStage)
+{
+	if (HasAuthority())
+	{
+		MathStage = NewStage;
+		
+		OnRep_MatchStage();
+	}
+}
 
 bool AMD_GameState::IsHeroAlreadyPicked(TSubclassOf<AMD_CharacterBase> InHeroClass) const
 {
@@ -40,7 +67,7 @@ void AMD_GameState::MarkHeroAsPicked(TSubclassOf<AMD_CharacterBase> InHeroClass)
 		{
 			if (AMD_GameMode* GM = Cast<AMD_GameMode>(GetWorld()->GetAuthGameMode()))
 			{
-				GM->SetMatchStage(InProgress);
+				GM->SetMatchStage(EMathStage::InProgress);
 			}
 		}
 	}

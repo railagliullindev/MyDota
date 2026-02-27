@@ -41,23 +41,7 @@ void AMD_GameMode::PostLogin(APlayerController* NewPlayer)
 		bIsTeamA = !bIsTeamA;
 	}
 	
-	FActorSpawnParameters SpawnParameters;
-	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-	
-	FVector SpawnLocation = FVector::ZeroVector;
-	FRotator SpawnRotation = FRotator::ZeroRotator;
-	
-	if (AActor* PlayerStart = FindPlayerStart(NewPlayer))
-	{
-		SpawnLocation = PlayerStart->GetActorLocation();
-		SpawnRotation = PlayerStart->GetActorRotation();
-	}
-	
-	APawn* CameraPawn = GetWorld()->SpawnActor<APawn>(CameraPawnClass, SpawnLocation, SpawnRotation, SpawnParameters);
-	if (CameraPawn)
-	{
-		NewPlayer->Possess(CameraPawn);
-	}
+	SpawnCameraForPlayer(NewPlayer);
 	
 	AMD_PlayerController* PC = Cast<AMD_PlayerController>(NewPlayer);
 	if (PC)
@@ -90,6 +74,8 @@ void AMD_GameMode::SetMatchStage(EMathStage NewStage)
 		UE_LOG(LogTemp, Warning, TEXT("AMD_GameMode::SetMatchStage POST GAME"));
 		break;
 	}
+	
+	MD_GameState->SetMatchStage(NewStage);
 }
 
 void AMD_GameMode::Draft()
@@ -146,4 +132,25 @@ void AMD_GameMode::InProgress()
 void AMD_GameMode::PostGame()
 {
 	
+}
+
+void AMD_GameMode::SpawnCameraForPlayer(APlayerController* NewPlayer)
+{
+	FActorSpawnParameters SpawnParameters;
+	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+	
+	FVector SpawnLocation = FVector::ZeroVector;
+	FRotator SpawnRotation = FRotator::ZeroRotator;
+	
+	if (AActor* PlayerStart = FindPlayerStart(NewPlayer))
+	{
+		SpawnLocation = PlayerStart->GetActorLocation();
+		SpawnRotation = PlayerStart->GetActorRotation();
+	}
+	
+	APawn* CameraPawn = GetWorld()->SpawnActor<APawn>(CameraPawnClass, SpawnLocation, SpawnRotation, SpawnParameters);
+	if (CameraPawn)
+	{
+		NewPlayer->Possess(CameraPawn);
+	}
 }

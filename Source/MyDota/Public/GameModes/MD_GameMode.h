@@ -11,7 +11,7 @@ class AMD_CharacterBase;
 
 
 UENUM()
-enum EMathStage : uint8
+enum class EMathStage : uint8
 {
 	Draft,
 	PreGame,
@@ -41,6 +41,8 @@ protected:
 	void PreGame();
 	void InProgress();
 	void PostGame();
+	
+	void SpawnCameraForPlayer(APlayerController* NewPlayer);
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Classes")
 	TSubclassOf<APawn> CameraPawnClass;
