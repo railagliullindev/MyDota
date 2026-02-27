@@ -8,11 +8,14 @@
 #include "EnhancedInputSubsystems.h"
 #include "InputAction.h"
 #include "InputMappingContext.h"
+#include "MD_GameplayTags.h"
+#include "AbilitySystem/MD_AbilitySystemComponent.h"
 #include "Blueprint/UserWidget.h"
 #include "Characters/MD_CharacterBase.h"
 #include "GameFrameworks/MD_PlayerState.h"
 #include "GameModes/MD_GameMode.h"
 #include "Net/UnrealNetwork.h"
+#include "Pawns/MD_CameraPawn.h"
 
 AMD_PlayerController::AMD_PlayerController()
 {
@@ -102,6 +105,13 @@ void AMD_PlayerController::SetupInputComponent()
 		{
 			EnhancedInput->BindAction(ClickMoveAction, ETriggerEvent::Started, this, &AMD_PlayerController::InputMove);
 		}
+		
+		if (FollowToHeroAction)
+		{
+			
+			EnhancedInput->BindAction(FollowToHeroAction, ETriggerEvent::Started, this, &AMD_PlayerController::FollowToHeroPressed);
+			EnhancedInput->BindAction(FollowToHeroAction, ETriggerEvent::Completed, this, &AMD_PlayerController::FollowToHeroReleased);
+		}
 	}
 }
 
@@ -113,6 +123,34 @@ void AMD_PlayerController::InputMove()
 		Server_MoveToLocation(Hit.ImpactPoint);
 		
 		// Визуал клика
+	}
+}
+
+void AMD_PlayerController::FollowToHeroPressed()
+{
+	auto* CameraPawn = Cast<AMD_CameraPawn>(GetPawn());
+	if (CameraPawn)
+	{
+		auto* CameraPawnASC = CameraPawn->GetMDAbilitySystemComponent();
+		if (CameraPawnASC)
+		{
+			CameraPawnASC->TryActivateAbilitiesByTag(FGameplayTagContainer{MyDotaTags::Ability_Camera_FollowingHero});
+		}
+	}
+}
+
+void AMD_PlayerController::FollowToHeroReleased()
+{
+	auto* CameraPawn = Cast<AMD_CameraPawn>(GetPawn());
+	if (CameraPawn)
+	{
+		auto* CameraPawnASC = CameraPawn->GetMDAbilitySystemComponent();
+		if (CameraPawnASC)
+		{
+			FGameplayTagContainer CompleteTag;
+			CompleteTag.AddTag(MyDotaTags::Ability_Camera_FollowingHero);
+			CameraPawnASC->CancelAbilities(&CompleteTag);
+		}
 	}
 }
 
@@ -156,7 +194,6 @@ void AMD_PlayerController::OnDraftMode()
 {
 	if (IsLocalController() && DraftWidgetClass)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("PC to draft mode success"));
 		DraftWidget = CreateWidget<UUserWidget>(this, DraftWidgetClass);
 		if (DraftWidget)
 		{            

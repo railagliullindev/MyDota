@@ -52,6 +52,9 @@ protected:
 	
 	void InputMove();
 	
+	void FollowToHeroPressed();
+	void FollowToHeroReleased();
+	
 	UFUNCTION(Server, Reliable)
 	void Server_MoveToLocation(FVector InLocation);
 	
@@ -77,6 +80,10 @@ protected:
 	/** Input action that is bound to mouse click for movement */
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	UInputAction* ClickMoveAction;
+	
+	/** Input action that is bound to mouse click for movement */
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	UInputAction* FollowToHeroAction;
 
 	/** Input action for camera movement */
 	UPROPERTY(EditDefaultsOnly, Category = "Input|Camera")

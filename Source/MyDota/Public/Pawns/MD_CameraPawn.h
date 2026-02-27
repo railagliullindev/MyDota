@@ -3,15 +3,18 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "AbilitySystemInterface.h"
 #include "GameFramework/Pawn.h"
 #include "MD_CameraPawn.generated.h"
 
+class UGameplayAbility;
+class UMD_AbilitySystemComponent;
 class USpringArmComponent;
 class UCameraComponent;
 class USceneComponent;
 
 UCLASS()
-class MYDOTA_API AMD_CameraPawn : public APawn
+class MYDOTA_API AMD_CameraPawn : public APawn, public IAbilitySystemInterface
 {
 	GENERATED_BODY()
 
@@ -20,14 +23,18 @@ public:
 	
 	virtual void BeginPlay() override;
 	
+	//~ Begin IAbilitySystemInterface Interface.
+	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+	//~ End IAbilitySystemInterface Interface
+	
 	FORCEINLINE UCameraComponent* GetTopDownCameraComponent() const {return CameraComponent;}
 	FORCEINLINE USpringArmComponent* GetCameraBoom() const {return CameraBoom;}
+	FORCEINLINE UMD_AbilitySystemComponent* GetMDAbilitySystemComponent() const {return AbilitySystem;}
 
 protected:
 	virtual void Tick(float DeltaSeconds) override;
 
 public:
-
 
 	/** Зум камеры (обычно привязан к колесику мыши) */
 	void HandleCameraZoom(float AxisValue);
@@ -57,15 +64,25 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Camera|EdgeScroll", meta = (ClampMin = "1.0"))
 	float EdgeScrollThreshold = 40.f;
 	
+	UPROPERTY(EditAnywhere, Category = "Camera|Following")
+	float SnapSpeed;
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
 	FBox CameraBounds;
 	
 	void ClampCameraLocation(FVector& OutLocation);
 	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UMD_AbilitySystemComponent* AbilitySystem;
+	
+	UPROPERTY(EditAnywhere, Category = "GAS")
+	TArray<TSubclassOf<UGameplayAbility>> StartupAbilities;
+	
 private:
 	
 	void TryMoveToCameraOnEdge();
 	void HandleCameraMove(const FVector2D& Input);
+	void FollowHeroSmoothly(const float& InTime);
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera", meta = (AllowPrivateAccess = "true"))
 	USceneComponent* SceneRoot;
@@ -75,4 +92,7 @@ private:
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera", meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* CameraComponent;
+	
+	UPROPERTY()
+	AActor* FollowingTarget;
 };

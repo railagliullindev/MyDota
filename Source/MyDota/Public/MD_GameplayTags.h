@@ -12,4 +12,10 @@ namespace MyDotaTags
 	MYDOTA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Character_HealthMax);
 	MYDOTA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Character_Mana);
 	MYDOTA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Character_ManaMax);
+	
+	/** Camera Tags */
+	MYDOTA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Camera_FollowingHero);
+	
+	/** Camera Ability Tags */
+	MYDOTA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Camera_FollowingHero);
 }

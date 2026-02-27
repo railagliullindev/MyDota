@@ -3,13 +3,18 @@
 
 #include "Pawns/MD_CameraPawn.h"
 
+#include "MD_GameplayTags.h"
+#include "AbilitySystem/MD_AbilitySystemComponent.h"
+#include "AbilitySystem/Abilities/GA_CameraFollow.h"
 #include "Camera/CameraComponent.h"
+#include "Characters/MD_CharacterBase.h"
 #include "Components/SceneComponent.h"
+#include "Controllers/MD_PlayerController.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/GameplayStatics.h"
 
-AMD_CameraPawn::AMD_CameraPawn()
+AMD_CameraPawn::AMD_CameraPawn() : SnapSpeed(30.f)
 {
 	// Don't rotate character to camera direction
 	bUseControllerRotationPitch = false;
@@ -36,6 +41,8 @@ AMD_CameraPawn::AMD_CameraPawn()
 
 	CameraComponent->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	CameraComponent->bUsePawnControlRotation = false;
+	
+	AbilitySystem = CreateDefaultSubobject<UMD_AbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 }
 
 void AMD_CameraPawn::BeginPlay()
@@ -48,13 +55,34 @@ void AMD_CameraPawn::BeginPlay()
 	{
 		CameraBounds = FoundVolumes[0]->GetComponentsBoundingBox();
 	}
+
+	AbilitySystem->InitAbilityActorInfo(this, this);
+	
+	for (auto AbilityClass : StartupAbilities)
+	{
+		if (AbilityClass)
+		{
+			AbilitySystem->GiveAbility(FGameplayAbilitySpec(AbilityClass, 1, INDEX_NONE, this));
+		}
+	}
+}
+
+UAbilitySystemComponent* AMD_CameraPawn::GetAbilitySystemComponent() const
+{
+	return GetMDAbilitySystemComponent();
 }
 
 void AMD_CameraPawn::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
-	TryMoveToCameraOnEdge();
+	if (AbilitySystem->HasMatchingGameplayTag(MyDotaTags::Camera_FollowingHero))
+	{
+		FollowHeroSmoothly(DeltaSeconds);
+	}else
+	{
+		TryMoveToCameraOnEdge();
+	}
 }
 
 void AMD_CameraPawn::ClampCameraLocation(FVector& OutLocation)
@@ -63,6 +91,25 @@ void AMD_CameraPawn::ClampCameraLocation(FVector& OutLocation)
 	
 	OutLocation.X = FMath::Clamp(OutLocation.X, CameraBounds.Min.X, CameraBounds.Max.X);
 	OutLocation.Y = FMath::Clamp(OutLocation.Y, CameraBounds.Min.Y, CameraBounds.Max.Y);
+}
+
+void AMD_CameraPawn::FollowHeroSmoothly(const float& InTime)
+{
+	AMD_PlayerController* PC = Cast<AMD_PlayerController>(GetController());
+	if (PC)
+	{
+		FollowingTarget = PC->GetHero();
+	}
+	
+	if (FollowingTarget)
+	{
+		const FVector TargetLoc = FollowingTarget->GetActorLocation();
+		const FVector CurrentLoc = GetActorLocation();
+		
+		FVector NewLoc = FMath::VInterpTo(CurrentLoc, TargetLoc, InTime, SnapSpeed);
+		ClampCameraLocation(NewLoc);
+		SetActorLocation(NewLoc);
+	}
 }
 
 void AMD_CameraPawn::TryMoveToCameraOnEdge()
