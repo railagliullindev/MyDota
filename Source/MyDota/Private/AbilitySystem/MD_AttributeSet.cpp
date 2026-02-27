@@ -2,27 +2,55 @@
 
 #include "AbilitySystem/MD_AttributeSet.h"
 #include "GameplayEffectExtension.h"
+#include "Net/UnrealNetwork.h"
 
 UMD_AttributeSet::UMD_AttributeSet()
 {
-	InitCurrentHealth(1.f);
-	InitMaxHealth(1.f);
-	InitCurrentMana(1.f);
-	InitMaxMana(1.f);
+	InitHealth(1.f);
+	InitHealthMax(1.f);
+	InitMana(1.f);
+	InitManaMax(1.f);
 }
 
-void UMD_AttributeSet::PostGameplayEffectExecute(const struct FGameplayEffectModCallbackData& Data)
+void UMD_AttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue)
 {
-	if (Data.EvaluatedData.Attribute == GetCurrentHealthAttribute())
-	{
-		const float NewCurrentHealth = FMath::Clamp(GetCurrentHealth(), 0.f, GetMaxHealth());
-		SetCurrentHealth(NewCurrentHealth);
-	}
+	Super::PreAttributeChange(Attribute, NewValue);
 	
-	if (Data.EvaluatedData.Attribute == GetCurrentManaAttribute())
+	if (Attribute == GetHealthAttribute())
 	{
-		const float NewCurrentMana = FMath::Clamp(GetCurrentMana(), 0.f, GetMaxMana());
-		SetCurrentMana(NewCurrentMana);
+		NewValue = FMath::Clamp(NewValue, 0.f, GetHealthMax());
 	}
+	else if (Attribute == GetManaAttribute())
+	{
+		NewValue = FMath::Clamp(NewValue, 0.f, GetManaMax());
+	}
+}
+void UMD_AttributeSet::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	
+	DOREPLIFETIME_CONDITION_NOTIFY(UMD_AttributeSet, Health, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UMD_AttributeSet, HealthMax, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UMD_AttributeSet, Mana, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UMD_AttributeSet, ManaMax, COND_None, REPNOTIFY_Always);
+}
+
+void UMD_AttributeSet::OnRep_Health(const FGameplayAttributeData& OldHealth)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UMD_AttributeSet, Health, OldHealth)
+}
+
+void UMD_AttributeSet::OnRep_HealthMax(const FGameplayAttributeData& OldHealthMax)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UMD_AttributeSet, HealthMax, OldHealthMax)
+}
+
+void UMD_AttributeSet::OnRep_Mana(const FGameplayAttributeData& OldMana)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UMD_AttributeSet, Mana, OldMana)
+}
+
+void UMD_AttributeSet::OnRep_ManaMax(const FGameplayAttributeData& OldManaMax)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UMD_AttributeSet, ManaMax, OldManaMax)
 }

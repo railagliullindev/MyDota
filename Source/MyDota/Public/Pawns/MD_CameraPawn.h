@@ -7,6 +7,9 @@
 #include "GameFramework/Pawn.h"
 #include "MD_CameraPawn.generated.h"
 
+struct FGameplayTag;
+class UDataAsset_InputConfig;
+class UDataAsset_StartupDataBase;
 class UGameplayAbility;
 class UMD_AbilitySystemComponent;
 class USpringArmComponent;
@@ -25,6 +28,7 @@ public:
 	
 	//~ Begin IAbilitySystemInterface Interface.
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 	//~ End IAbilitySystemInterface Interface
 	
 	FORCEINLINE UCameraComponent* GetTopDownCameraComponent() const {return CameraComponent;}
@@ -75,14 +79,17 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	UMD_AbilitySystemComponent* AbilitySystem;
 	
-	UPROPERTY(EditAnywhere, Category = "GAS")
-	TArray<TSubclassOf<UGameplayAbility>> StartupAbilities;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Startup Data")
+	TSoftObjectPtr<UDataAsset_StartupDataBase> StartupData;
 	
 private:
 	
 	void TryMoveToCameraOnEdge();
 	void HandleCameraMove(const FVector2D& Input);
 	void FollowHeroSmoothly(const float& InTime);
+	
+	void Input_AbilityInputPressed(FGameplayTag InInputTag);
+	void Input_AbilityInputReleased(FGameplayTag InInputTag);
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera", meta = (AllowPrivateAccess = "true"))
 	USceneComponent* SceneRoot;
@@ -95,4 +102,7 @@ private:
 	
 	UPROPERTY()
 	AActor* FollowingTarget;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Startup Data", meta = (AllowPrivateAccess = "true"))
+	UDataAsset_InputConfig* InputConfigDataAsset;
 };

@@ -7,7 +7,11 @@
 
 UGA_CameraFollow::UGA_CameraFollow()
 {
-	SetAssetTags(FGameplayTagContainer{MyDotaTags::Ability_Camera_FollowingHero}); 
+	FGameplayTagContainer Container;
+	Container.AddTag(MyDotaTags::Ability_Camera_FollowingHero);
+	Container.AddTag(MyDotaTags::InputTag_FollowToHero);
+	
+	SetAssetTags(Container);
 	
 	ActivationOwnedTags.AddTag(MyDotaTags::Camera_FollowingHero);
 }

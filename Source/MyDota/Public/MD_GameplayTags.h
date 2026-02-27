@@ -7,6 +7,11 @@
 
 namespace MyDotaTags
 {
+	/** InputTags */
+	MYDOTA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag);
+	MYDOTA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_FollowToHero);
+	
+	
 	/** Main stats Tag  */
 	MYDOTA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Character_Health);
 	MYDOTA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Character_HealthMax);
@@ -15,6 +20,8 @@ namespace MyDotaTags
 	
 	/** Camera Tags */
 	MYDOTA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Camera_FollowingHero);
+	
+	MYDOTA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability);
 	
 	/** Camera Ability Tags */
 	MYDOTA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Camera_FollowingHero);

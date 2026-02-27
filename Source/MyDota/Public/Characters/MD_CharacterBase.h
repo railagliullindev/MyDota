@@ -7,6 +7,7 @@
 #include "AbilitySystemInterface.h"
 #include "MD_CharacterBase.generated.h"
 
+class UDataAsset_HeroStartupData;
 class UMD_AttributeSet;
 class UMD_AbilitySystemComponent;
 
@@ -17,6 +18,8 @@ class MYDOTA_API AMD_CharacterBase : public ACharacter, public IAbilitySystemInt
 
 public:
 	AMD_CharacterBase();
+	
+	virtual void PossessedBy(AController* NewController) override;
 	
 	//~ Begin IAbilitySystemInterface Interface.
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
@@ -35,4 +38,7 @@ protected:
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AbilitySystem")
 	UMD_AttributeSet* MD_AttributeSet;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "StartupData")
+	TSoftObjectPtr<UDataAsset_HeroStartupData> HeroStartupData;
 };

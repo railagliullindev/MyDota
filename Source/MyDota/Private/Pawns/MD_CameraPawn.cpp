@@ -3,13 +3,15 @@
 
 #include "Pawns/MD_CameraPawn.h"
 
+#include "EnhancedInputSubsystems.h"
 #include "MD_GameplayTags.h"
 #include "AbilitySystem/MD_AbilitySystemComponent.h"
-#include "AbilitySystem/Abilities/GA_CameraFollow.h"
 #include "Camera/CameraComponent.h"
 #include "Characters/MD_CharacterBase.h"
 #include "Components/SceneComponent.h"
+#include "Components/Input/MyDotaInputComponent.h"
 #include "Controllers/MD_PlayerController.h"
+#include "DataAssets/StartupData/DataAsset_StartupDataBase.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/GameplayStatics.h"
@@ -57,19 +59,35 @@ void AMD_CameraPawn::BeginPlay()
 	}
 
 	AbilitySystem->InitAbilityActorInfo(this, this);
-	
-	for (auto AbilityClass : StartupAbilities)
+	if (!StartupData.IsValid())
 	{
-		if (AbilityClass)
+		if (UDataAsset_StartupDataBase* LoadedData = StartupData.LoadSynchronous())
 		{
-			AbilitySystem->GiveAbility(FGameplayAbilitySpec(AbilityClass, 1, INDEX_NONE, this));
+			LoadedData->GiveToAbilitySystemComponent(AbilitySystem);
 		}
+	}
+	else
+	{
+		StartupData->GiveToAbilitySystemComponent(AbilitySystem);
 	}
 }
 
 UAbilitySystemComponent* AMD_CameraPawn::GetAbilitySystemComponent() const
 {
 	return GetMDAbilitySystemComponent();
+}
+
+void AMD_CameraPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+{
+	checkf(InputConfigDataAsset, TEXT("Forgot to assign a valid asset as input config"));
+	ULocalPlayer* LocalPlayer = GetController<APlayerController>()->GetLocalPlayer();
+	UEnhancedInputLocalPlayerSubsystem* EnhancedInputLPSubsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(LocalPlayer);
+	
+	check(EnhancedInputLPSubsystem)
+	
+	UMyDotaInputComponent* DotaInputComponent = CastChecked<UMyDotaInputComponent>(PlayerInputComponent);
+	
+	DotaInputComponent->BindAbilityInputAction(InputConfigDataAsset, this, &ThisClass::Input_AbilityInputPressed, &ThisClass::Input_AbilityInputReleased);
 }
 
 void AMD_CameraPawn::Tick(float DeltaSeconds)
@@ -110,6 +128,16 @@ void AMD_CameraPawn::FollowHeroSmoothly(const float& InTime)
 		ClampCameraLocation(NewLoc);
 		SetActorLocation(NewLoc);
 	}
+}
+
+void AMD_CameraPawn::Input_AbilityInputPressed(FGameplayTag InInputTag)
+{
+	AbilitySystem->OnAbilityInputPressed(InInputTag);
+}
+
+void AMD_CameraPawn::Input_AbilityInputReleased(FGameplayTag InInputTag)
+{
+	AbilitySystem->OnAbilityInputReleased(InInputTag);
 }
 
 void AMD_CameraPawn::TryMoveToCameraOnEdge()

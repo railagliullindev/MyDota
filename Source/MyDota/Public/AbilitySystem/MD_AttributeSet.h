@@ -24,22 +24,36 @@ class MYDOTA_API UMD_AttributeSet : public UAttributeSet
 public:
 	UMD_AttributeSet();
 	
-	virtual void PostGameplayEffectExecute(const struct FGameplayEffectModCallbackData& Data) override;
+	virtual void PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue) override;
 	
-	UPROPERTY(BlueprintReadOnly, Category = "MainStats")
-	FGameplayAttributeData CurrentHealth;
-	ATTRIBUTE_ACCESSORS(UMD_AttributeSet, CurrentHealth);
+	UPROPERTY(BlueprintReadOnly, Category = "Attributes", ReplicatedUsing = OnRep_Health)
+	FGameplayAttributeData Health;
+	ATTRIBUTE_ACCESSORS(UMD_AttributeSet, Health);
 	
-	UPROPERTY(BlueprintReadOnly, Category = "MainStats")
-	FGameplayAttributeData MaxHealth;
-	ATTRIBUTE_ACCESSORS(UMD_AttributeSet, MaxHealth);
+	UPROPERTY(BlueprintReadOnly, Category = "Attributes", ReplicatedUsing = OnRep_HealthMax)
+	FGameplayAttributeData HealthMax;
+	ATTRIBUTE_ACCESSORS(UMD_AttributeSet, HealthMax);
 
-	UPROPERTY(BlueprintReadOnly, Category = "MainStats")
-	FGameplayAttributeData CurrentMana;
-	ATTRIBUTE_ACCESSORS(UMD_AttributeSet, CurrentMana);
+	UPROPERTY(BlueprintReadOnly, Category = "Attributes", ReplicatedUsing = OnRep_Mana)
+	FGameplayAttributeData Mana;
+	ATTRIBUTE_ACCESSORS(UMD_AttributeSet, Mana);
 	
-	UPROPERTY(BlueprintReadOnly, Category = "MainStats")
-	FGameplayAttributeData MaxMana;
-	ATTRIBUTE_ACCESSORS(UMD_AttributeSet, MaxMana);
+	UPROPERTY(BlueprintReadOnly, Category = "Attributes", ReplicatedUsing = OnRep_ManaMax)
+	FGameplayAttributeData ManaMax;
+	ATTRIBUTE_ACCESSORS(UMD_AttributeSet, ManaMax);
+	
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+	
+	UFUNCTION()
+	virtual void OnRep_Health(const FGameplayAttributeData& OldHealth);
+	
+	UFUNCTION()
+	virtual void OnRep_HealthMax(const FGameplayAttributeData& OldHealthMax);
+	
+	UFUNCTION()
+	virtual void OnRep_Mana(const FGameplayAttributeData& OldMana);
+	
+	UFUNCTION()
+	virtual void OnRep_ManaMax(const FGameplayAttributeData& OldManaMax);
 	
 };

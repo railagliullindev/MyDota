@@ -6,6 +6,7 @@
 #include "AbilitySystem/MD_AbilitySystemComponent.h"
 #include "AbilitySystem/MD_AttributeSet.h"
 #include "Components/CapsuleComponent.h"
+#include "DataAssets/StartupData/DataAsset_HeroStartupData.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
 AMD_CharacterBase::AMD_CharacterBase()
@@ -34,6 +35,19 @@ AMD_CharacterBase::AMD_CharacterBase()
 	MD_AttributeSet = CreateDefaultSubobject<UMD_AttributeSet>(TEXT("AttributeSet"));
 	
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
+}
+
+void AMD_CharacterBase::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+	
+	if (!HeroStartupData.IsNull())
+	{
+		if (UDataAsset_HeroStartupData* LoadedData = HeroStartupData.LoadSynchronous())
+		{
+			LoadedData->GiveToAbilitySystemComponent(MD_AbilitySystemComponent);
+		}
+	}
 }
 
 UAbilitySystemComponent* AMD_CharacterBase::GetAbilitySystemComponent() const

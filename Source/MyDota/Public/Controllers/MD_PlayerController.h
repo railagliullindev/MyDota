@@ -52,9 +52,6 @@ protected:
 	
 	void InputMove();
 	
-	void FollowToHeroPressed();
-	void FollowToHeroReleased();
-	
 	UFUNCTION(Server, Reliable)
 	void Server_MoveToLocation(FVector InLocation);
 	
