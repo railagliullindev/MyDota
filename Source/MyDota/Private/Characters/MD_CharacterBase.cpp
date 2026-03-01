@@ -74,6 +74,7 @@ void AMD_CharacterBase::InitAbilitySystem()
 		   HasAuthority() ? TEXT("Server") : TEXT("Client"), *GetName());
 		
 		
+		if (!HasAuthority()) return;
 		if (!HeroStartupData.IsNull())
 		{
 			if (UDataAsset_HeroStartupData* LoadedData = HeroStartupData.LoadSynchronous())
@@ -90,16 +91,16 @@ void AMD_CharacterBase::OnRep_PlayerState()
 {
 	if (!PS) return;
 	
-	UE_LOG(LogMyDotaGAS, Log, TEXT("[%s] OnRep_PlayerState"), HasAuthority() ? TEXT("Server") : TEXT("Client"));
+	//UE_LOG(LogMyDotaGAS, Log, TEXT("[%s] OnRep_PlayerState"), HasAuthority() ? TEXT("Server") : TEXT("Client"));
 	Super::OnRep_PlayerState();
 	
-	//InitAbilitySystem();
+	InitAbilitySystem();
 }
 
 void AMD_CharacterBase::OnRep_Owner()
 {
 	Super::OnRep_Owner();
-	UE_LOG(LogMyDotaGAS, Log, TEXT("[%s] OnRep_Owner"), HasAuthority() ? TEXT("Server") : TEXT("Client"));
-	//InitAbilitySystem();
+	//UE_LOG(LogMyDotaGAS, Log, TEXT("[%s] OnRep_Owner"), HasAuthority() ? TEXT("Server") : TEXT("Client"));
+	InitAbilitySystem();
 }
 
