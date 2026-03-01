@@ -33,6 +33,8 @@ void UMD_AttributeSet::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty
 	DOREPLIFETIME_CONDITION_NOTIFY(UMD_AttributeSet, HealthMax, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UMD_AttributeSet, Mana, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UMD_AttributeSet, ManaMax, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UMD_AttributeSet, AttackRange, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UMD_AttributeSet, AttackSpeed, COND_None, REPNOTIFY_Always);
 }
 
 void UMD_AttributeSet::OnRep_Health(const FGameplayAttributeData& OldHealth)
@@ -53,4 +55,14 @@ void UMD_AttributeSet::OnRep_Mana(const FGameplayAttributeData& OldMana)
 void UMD_AttributeSet::OnRep_ManaMax(const FGameplayAttributeData& OldManaMax)
 {
 	GAMEPLAYATTRIBUTE_REPNOTIFY(UMD_AttributeSet, ManaMax, OldManaMax)
+}
+
+void UMD_AttributeSet::OnRep_AttackRange(const FGameplayAttributeData& OldAttackRange)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UMD_AttributeSet, AttackRange, OldAttackRange)
+}
+
+void UMD_AttributeSet::OnRep_AttackSpeed(const FGameplayAttributeData& OldAttackSpeed)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UMD_AttributeSet, AttackSpeed, OldAttackSpeed)
 }

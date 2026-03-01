@@ -51,9 +51,13 @@ protected:
 	AMD_CharacterBase* Hero;
 	
 	void InputMove();
+	void InputAttack();
 	
 	UFUNCTION(Server, Reliable)
 	void Server_MoveToLocation(FVector InLocation);
+	
+	UFUNCTION(Server, Reliable)
+	void Server_AttackTarget(AActor* Target);
 	
 	void SpawnHero();
 	
@@ -65,6 +69,9 @@ protected:
 	/** Input action that is bound to mouse click for movement */
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	UInputAction* ClickMoveAction;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	UInputAction* AttackAction;
 	
 	/** Input action that is bound to mouse click for movement */
 	UPROPERTY(EditDefaultsOnly, Category = "Input")

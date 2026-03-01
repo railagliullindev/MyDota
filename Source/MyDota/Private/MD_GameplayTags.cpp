@@ -8,6 +8,7 @@ namespace MyDotaTags
 	/** InputTags */
 	UE_DEFINE_GAMEPLAY_TAG(InputTag, "InputTag");
 	UE_DEFINE_GAMEPLAY_TAG(InputTag_FollowToHero, "InputTag.FollowToHero");
+	UE_DEFINE_GAMEPLAY_TAG(InputTag_Attack, "InputTag.Attack");
 	
 	/** Main stats Tag  */
 	UE_DEFINE_GAMEPLAY_TAG(Character_Health, "Character.Health");
@@ -26,4 +27,12 @@ namespace MyDotaTags
 	UE_DEFINE_GAMEPLAY_TAG(Ability_ShowGameplayHUD, "Ability.ShowGameplayHUD");
 	UE_DEFINE_GAMEPLAY_TAG(Ability_ShowOverhead, "Ability.ShowOverhead");
 	UE_DEFINE_GAMEPLAY_TAG(Ability_Camera_FollowingHero, "Ability.Camera.FollowingHero");
+	
+	UE_DEFINE_GAMEPLAY_TAG(Ability_Attack, "Ability.Attack");
+	
+	/** Events */
+	UE_DEFINE_GAMEPLAY_TAG(Event_Montage_Hit, "Event.Hit");
+	
+	
+	UE_DEFINE_GAMEPLAY_TAG(Event_Ability_RequestAttack, "Event.Ability.RequestAttack");
 }

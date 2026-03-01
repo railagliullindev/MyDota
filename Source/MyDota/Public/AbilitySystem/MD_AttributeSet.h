@@ -42,6 +42,14 @@ public:
 	FGameplayAttributeData ManaMax;
 	ATTRIBUTE_ACCESSORS(UMD_AttributeSet, ManaMax);
 	
+	UPROPERTY(BlueprintReadOnly, Category = "Attributes", ReplicatedUsing = OnRep_AttackRange)
+	FGameplayAttributeData AttackRange;
+	ATTRIBUTE_ACCESSORS(UMD_AttributeSet, AttackRange);
+	
+	UPROPERTY(BlueprintReadOnly, Category = "Attributes", ReplicatedUsing = OnRep_AttackSpeed)
+	FGameplayAttributeData AttackSpeed;
+	ATTRIBUTE_ACCESSORS(UMD_AttributeSet, AttackSpeed);
+	
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	
 	UFUNCTION()
@@ -55,5 +63,12 @@ public:
 	
 	UFUNCTION()
 	virtual void OnRep_ManaMax(const FGameplayAttributeData& OldManaMax);
+	
+	UFUNCTION()
+	virtual void OnRep_AttackRange(const FGameplayAttributeData& OldAttackRange);
+	
+	UFUNCTION()
+	virtual void OnRep_AttackSpeed(const FGameplayAttributeData& OldAttackSpeed);
+	
 	
 };

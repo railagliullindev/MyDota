@@ -116,6 +116,10 @@ void AMD_PlayerController::SetupInputComponent()
 		{
 			EnhancedInput->BindAction(ClickMoveAction, ETriggerEvent::Started, this, &AMD_PlayerController::InputMove);
 		}
+		if (AttackAction)
+		{
+			EnhancedInput->BindAction(AttackAction, ETriggerEvent::Started, this, &AMD_PlayerController::InputAttack);
+		}
 	}
 }
 
@@ -127,6 +131,19 @@ void AMD_PlayerController::InputMove()
 		Server_MoveToLocation(Hit.ImpactPoint);
 		
 		// Визуал клика
+	}
+}
+
+void AMD_PlayerController::InputAttack()
+{
+	FHitResult Hit;
+	if (GetHitResultUnderCursor(ECC_Pawn, false, Hit))
+	{
+		AActor* Target = Hit.GetActor();
+		if (Target)
+		{
+			Server_AttackTarget(Target);
+		}
 	}
 }
 
@@ -149,6 +166,17 @@ void AMD_PlayerController::Server_MoveToLocation_Implementation(FVector InLocati
 			UE_LOG(LogTemp, Display, TEXT("AI двигает героя в %s"), *InLocation.ToString());
 			AIC->MoveToLocation(InLocation, 5.f, true, true, true);
 		}
+	}
+}
+
+void AMD_PlayerController::Server_AttackTarget_Implementation(AActor* Target)
+{
+	if (Hero && Target)
+	{
+		FGameplayEventData Payload;
+		Payload.Target = Target;
+		
+		Hero->GetAbilitySystemComponent()->HandleGameplayEvent(MyDotaTags::Event_Ability_RequestAttack, &Payload);
 	}
 }
 

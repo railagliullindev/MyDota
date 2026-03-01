@@ -43,6 +43,9 @@ protected:
 	virtual void OnRep_PlayerState() override;
 	virtual void OnRep_Owner() override;
 	
+	virtual void InitAbilitySystem();
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+	
 	UPROPERTY(VisibleAnywhere, Category = "AbilitySystem")
 	UMD_AbilitySystemComponent* ASC;
 	
@@ -55,15 +58,9 @@ protected:
 	UPROPERTY(ReplicatedUsing = OnRep_PlayerState)
 	AMD_PlayerState* PS;
 	
-	virtual void InitAbilitySystem();
-	void InitHealthBar();
-	
 	UPROPERTY()
 	UMD_OverheadWidget* OverheadWidget;
 	
-
-	
-	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
-	
+	void InitHealthBar();
 	void OnValueChanged(const FOnAttributeChangeData& Data);
 };
