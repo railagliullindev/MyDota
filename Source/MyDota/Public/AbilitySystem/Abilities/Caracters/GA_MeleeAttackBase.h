@@ -30,8 +30,14 @@ protected:
 	void MoveToTarget();
 	void PlayAttackMontage();
 	
+	float GetDistanceToTarget() const;
+	bool IsFacing() const;
+	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	UAnimMontage* AttackMontage;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	float AcceptanceAngle;
 	
 private:
 	
@@ -43,6 +49,9 @@ private:
 	
 	UPROPERTY()
 	TWeakObjectPtr<AActor> MyTarget;
+	
+	UPROPERTY()
+	FTimerHandle TimerHandle;
 	
 	float AttackRange;
 	float AttackSpeed;

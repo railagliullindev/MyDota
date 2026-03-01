@@ -10,12 +10,11 @@
 #include "InputMappingContext.h"
 #include "MD_GameplayTags.h"
 #include "AbilitySystem/MD_AbilitySystemComponent.h"
-#include "Blueprint/UserWidget.h"
 #include "Characters/MD_CharacterBase.h"
 #include "GameFrameworks/MD_PlayerState.h"
 #include "GameModes/MD_GameMode.h"
+#include "MyDota/MyDota.h"
 #include "Net/UnrealNetwork.h"
-#include "Pawns/MD_CameraPawn.h"
 
 AMD_PlayerController::AMD_PlayerController()
 {
@@ -139,9 +138,14 @@ void AMD_PlayerController::InputAttack()
 	FHitResult Hit;
 	if (GetHitResultUnderCursor(ECC_Pawn, false, Hit))
 	{
+		
+		UE_LOG(LogMyDotaGAS, Warning, TEXT("InputAttack: Hit"));
 		AActor* Target = Hit.GetActor();
 		if (Target)
 		{
+			if (!Cast<APawn>(Hit.GetActor())) return;
+			
+			UE_LOG(LogMyDotaGAS, Warning, TEXT("InputAttack: Hit target %s"), *Target->GetName());
 			Server_AttackTarget(Target);
 		}
 	}
@@ -149,8 +153,15 @@ void AMD_PlayerController::InputAttack()
 
 void AMD_PlayerController::Server_MoveToLocation_Implementation(FVector InLocation)
 {
+	
 	if (Hero)
 	{
+		if (UMD_AbilitySystemComponent* ASC = Cast<UMD_AbilitySystemComponent>(Hero->GetAbilitySystemComponent()))
+		{
+			ASC->CancelAbilityWithTag(MyDotaTags::Ability_Attack);
+		}
+		
+		
 		// ИСПРАВЛЕНИЕ ДЛЯ ХОСТА:
 		// Проверяем, не завладел ли случайно PlayerController этим героем
 		if (Hero->GetController() == this)
@@ -176,7 +187,8 @@ void AMD_PlayerController::Server_AttackTarget_Implementation(AActor* Target)
 		FGameplayEventData Payload;
 		Payload.Target = Target;
 		
-		Hero->GetAbilitySystemComponent()->HandleGameplayEvent(MyDotaTags::Event_Ability_RequestAttack, &Payload);
+		int32 count = Hero->GetAbilitySystemComponent()->HandleGameplayEvent(MyDotaTags::Event_Ability_RequestAttack, &Payload);
+		UE_LOG(LogMyDotaGAS, Warning, TEXT("Server_AttackTarget Executes Events %d"), count);
 	}
 }
 
