@@ -31,8 +31,7 @@ namespace MyDotaTags
 	UE_DEFINE_GAMEPLAY_TAG(Ability_Attack, "Ability.Attack");
 	
 	/** Events */
-	UE_DEFINE_GAMEPLAY_TAG(Event_Montage_Hit, "Event.Hit");
-	
+	UE_DEFINE_GAMEPLAY_TAG(Event_Montage_Hit, "Event.Montage.Hit");
 	
 	UE_DEFINE_GAMEPLAY_TAG(Event_Ability_RequestAttack, "Event.Ability.RequestAttack");
 }

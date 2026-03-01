@@ -8,6 +8,7 @@
 #include "AbilitySystem/MD_AttributeSet.h"
 #include "Navigation/PathFollowingComponent.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
+#include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/Character.h"
 #include "MyDota/MyDota.h"
@@ -18,7 +19,7 @@ UGA_MeleeAttackBase::UGA_MeleeAttackBase()
 	
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
 	ReplicationPolicy = EGameplayAbilityReplicationPolicy::ReplicateYes;
-	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::ServerInitiated;
+	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::LocalPredicted;
 	
 	AcceptanceAngle = 10.f;
 }
@@ -26,9 +27,7 @@ UGA_MeleeAttackBase::UGA_MeleeAttackBase()
 void UGA_MeleeAttackBase::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
                                           const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo,
                                           const FGameplayEventData* TriggerEventData)
-{
-	UE_LOG(LogMyDotaGAS, Warning, TEXT("UGA_MeleeAttackBase::ActivateAbility OOOOOOOOOOOOOOOOO"));
-	
+{	
 	MyTarget = const_cast<AActor*>(TriggerEventData->Target.Get());
 	
 	if (!MyTarget.IsValid())
@@ -64,10 +63,7 @@ void UGA_MeleeAttackBase::ActivateAbility(const FGameplayAbilitySpecHandle Handl
 void UGA_MeleeAttackBase::EndAbility(const FGameplayAbilitySpecHandle Handle,
 	const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo,
 	bool bReplicateEndAbility, bool bWasCancelled)
-{
-	UE_LOG(LogMyDotaGAS, Warning, TEXT("!!!!UGA_MeleeAttackBase::EndAbility"));
-	
-	GetWorld()->GetTimerManager().ClearTimer(TimerHandle);
+{	GetWorld()->GetTimerManager().ClearTimer(TimerHandle);
 	MyTarget = nullptr;
 	
 	if (AIC)
@@ -89,13 +85,8 @@ void UGA_MeleeAttackBase::RunAttackLoop()
 	
 	if (GetDistanceToTarget() <= AttackRange)
 	{
-		
-		FString msg = GetActorInfo().IsNetAuthority() ? TEXT("Server"):TEXT("Client");
-			
-		UE_LOG(LogMyDotaGAS, Warning, TEXT("[%s]"), *msg);
 		if (AIC)
 		{
-			UE_LOG(LogMyDotaGAS, Warning, TEXT("[%s] Has AIC"), *msg);
 			AIC->StopMovement();
 			AIC->SetFocus(MyTarget.Get(), EAIFocusPriority::Gameplay);
 		}
@@ -126,7 +117,6 @@ void UGA_MeleeAttackBase::RunAttackLoop()
 
 void UGA_MeleeAttackBase::MoveToTarget()
 {
-	UE_LOG(LogMyDotaGAS, Warning, TEXT("UGA_MeleeAttackBase::MoveToTarget"));
 	AActor* Avatar = GetAvatarActorFromActorInfo();
 	if (!Avatar || !MyTarget.IsValid()) return;
 	
@@ -143,13 +133,26 @@ void UGA_MeleeAttackBase::MoveToTarget()
 
 void UGA_MeleeAttackBase::PlayAttackMontage()
 {
-	UE_LOG(LogMyDotaGAS, Warning, TEXT("UGA_MeleeAttackBase::PlayAttackMontage"));
 	if (!AttackMontage) return;
 
 	// Рассчитываем скорость анимации на основе AttackSpeed (Dota-style)
 	// Если AS = 1.0 (базовый), скорость 1.0. Если AS = 2.0 (ускорен), скорость 2.0.
 	float PlayRate = AttackSpeed;
 
+	// --- ЗАДАЧА 1: Ждем событие удара ---
+	UAbilityTask_WaitGameplayEvent* WaitEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(
+		this, 
+		MyDotaTags::Event_Montage_Hit, 
+		nullptr, 
+		true, 
+		false
+	);
+	
+	// Подписываемся на получение события
+	WaitEventTask->EventReceived.AddDynamic(this, &UGA_MeleeAttackBase::OnHitEventReceived);
+	WaitEventTask->ReadyForActivation();
+	
+	// --- ЗАДАЧА 2: Проигрываем анимацию (как делали раньше)
 	UAbilityTask_PlayMontageAndWait* MontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(
 		this, 
 		NAME_None, 
@@ -196,20 +199,40 @@ bool UGA_MeleeAttackBase::IsFacing() const
 	// Убираем вертикальную составляющую
 	Forward.Z = 0.f;
 	DirectionToTarget.Z = 0.f;
-
+	
 	const float DotProduct = FVector::DotProduct(Forward, DirectionToTarget);
 	const float Angle = FMath::RadiansToDegrees(FMath::Acos(DotProduct));
-
-	UE_LOG(LogMyDotaGAS, Warning, TEXT("Is Facing angle %f"), Angle);
+	
 	return Angle <= AcceptanceAngle;
+}
+
+void UGA_MeleeAttackBase::OnHitEventReceived(FGameplayEventData Payload)
+{
+	if (!MyTarget.IsValid()) return;
+	
+	FGameplayEffectSpecHandle DamageSpec = MakeOutgoingGameplayEffectSpec(DamageEffectClass, GetAbilityLevel());
+	
+	if (DamageSpec.IsValid())
+	{
+		// 2. Накладываем эффект на цель (MyTarget)
+		// Используем ApplyGameplayEffectSpecToTarget для мультиплеерной надежности
+		ApplyGameplayEffectSpecToTarget(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, DamageSpec, GetAbilityTargetData());
+	}
 }
 
 void UGA_MeleeAttackBase::OnAttackMontageFinished()
 {
-	UE_LOG(LogMyDotaGAS, Warning, TEXT("UGA_MeleeAttackBase::OnAttackMontageFinished"));
-	
 	if (MyTarget.IsValid())
 	{
 		RunAttackLoop();
 	}
+}
+
+FGameplayAbilityTargetDataHandle UGA_MeleeAttackBase::GetAbilityTargetData()
+{
+	FGameplayAbilityTargetDataHandle TargetDataHandle;
+	FGameplayAbilityTargetData_ActorArray* NewData = new FGameplayAbilityTargetData_ActorArray();
+	NewData->TargetActorArray.Add(MyTarget);
+	TargetDataHandle.Add(NewData);
+	return TargetDataHandle;
 }

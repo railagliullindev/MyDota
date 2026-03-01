@@ -33,16 +33,24 @@ protected:
 	float GetDistanceToTarget() const;
 	bool IsFacing() const;
 	
+	UFUNCTION()
+	void OnHitEventReceived(FGameplayEventData Payload);
+	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	UAnimMontage* AttackMontage;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	float AcceptanceAngle;
 	
+	// Класс эффекта, который будет наносить урон (выбирается в редакторе)
+	UPROPERTY(EditDefaultsOnly, Category = "Effects")
+	TSubclassOf<class UGameplayEffect> DamageEffectClass;
 private:
 	
 	UFUNCTION()
 	void OnAttackMontageFinished();
+	
+	FGameplayAbilityTargetDataHandle GetAbilityTargetData();
 	
 	UPROPERTY()
 	AAIController* AIC;

@@ -32,8 +32,7 @@ namespace MyDotaTags
 	MYDOTA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Attack);
 	
 	/** Events */
-	MYDOTA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Hit);
-	
+	MYDOTA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Montage_Hit);
 	
 	MYDOTA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Ability_RequestAttack);
 }
