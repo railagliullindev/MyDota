@@ -24,5 +24,6 @@ namespace MyDotaTags
 	UE_DEFINE_GAMEPLAY_TAG(Ability, "Ability");
 	UE_DEFINE_GAMEPLAY_TAG(Ability_ShowDraft, "Ability.ShowDraft");
 	UE_DEFINE_GAMEPLAY_TAG(Ability_ShowGameplayHUD, "Ability.ShowGameplayHUD");
+	UE_DEFINE_GAMEPLAY_TAG(Ability_ShowOverhead, "Ability.ShowOverhead");
 	UE_DEFINE_GAMEPLAY_TAG(Ability_Camera_FollowingHero, "Ability.Camera.FollowingHero");
 }

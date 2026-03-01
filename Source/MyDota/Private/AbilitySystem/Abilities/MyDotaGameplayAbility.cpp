@@ -4,6 +4,7 @@
 #include "AbilitySystem/Abilities/MyDotaGameplayAbility.h"
 
 #include "AbilitySystemComponent.h"
+#include "MyDota/MyDota.h"
 
 void UMyDotaGameplayAbility::OnGiveAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilitySpec& Spec)
 {
@@ -13,7 +14,8 @@ void UMyDotaGameplayAbility::OnGiveAbility(const FGameplayAbilityActorInfo* Acto
 	{
 		if (ActorInfo && !Spec.IsActive())
 		{
-			ActorInfo->AbilitySystemComponent->TryActivateAbility(Spec.Handle);
+			const bool result = ActorInfo->AbilitySystemComponent->TryActivateAbility(Spec.Handle);
+			UE_LOG(LogMyDotaGAS, Warning, TEXT("OnGiven Ability %s is %s"), *GetName(), result ? TEXT("Activated") : TEXT("NON ACTIVATED"));
 		}
 	}
 }
