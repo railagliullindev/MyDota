@@ -120,6 +120,7 @@ void AMD_GameMode::InProgress()
 			FVector Loc = SpawnPoint ? SpawnPoint->GetActorLocation() : FVector::ZeroVector;
 
 			FActorSpawnParameters HeroSpawnParams;
+			HeroSpawnParams.Owner = PC;
 			HeroSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
 			// 3. Спавним именно тот класс, который лежит в PlayerState
@@ -128,6 +129,7 @@ void AMD_GameMode::InProgress()
 
 			if (NewHero)
 			{
+				NewHero->SetPlayerState(PS);
 				PC->SetHero(NewHero);
 			}
 		}

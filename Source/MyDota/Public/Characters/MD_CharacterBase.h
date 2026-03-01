@@ -7,6 +7,7 @@
 #include "AbilitySystemInterface.h"
 #include "MD_CharacterBase.generated.h"
 
+class AMD_PlayerState;
 class UDataAsset_HeroStartupData;
 class UMD_AttributeSet;
 class UMD_AbilitySystemComponent;
@@ -19,26 +20,32 @@ class MYDOTA_API AMD_CharacterBase : public ACharacter, public IAbilitySystemInt
 public:
 	AMD_CharacterBase();
 	
-	virtual void PossessedBy(AController* NewController) override;
-	
-	//~ Begin IAbilitySystemInterface Interface.
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
-	//~ End IAbilitySystemInterface Interface
 	
-	FORCEINLINE UMD_AbilitySystemComponent* GetMDAbilitySystemComponent() const {return MD_AbilitySystemComponent;}
-	FORCEINLINE UMD_AttributeSet* GetMDAttributeSet() const {return MD_AttributeSet;}
+	void SetPlayerState(AMD_PlayerState* InPs);
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	FName HeroName = "Axe";
 	
 protected:
 	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AbilitySystem")
+	UPROPERTY(VisibleAnywhere, Category = "AbilitySystem")
 	UMD_AbilitySystemComponent* MD_AbilitySystemComponent;
 	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AbilitySystem")
+	UPROPERTY(VisibleAnywhere, Category = "AbilitySystem")
 	UMD_AttributeSet* MD_AttributeSet;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "StartupData")
 	TSoftObjectPtr<UDataAsset_HeroStartupData> HeroStartupData;
+	
+	UPROPERTY(ReplicatedUsing = OnRep_PlayerState)
+	AMD_PlayerState* PS;
+	
+	virtual void InitAbilitySystem();
+	
+	// Переопределения для мультиплеера
+	virtual void OnRep_PlayerState() override;
+	virtual void OnRep_Owner() override;
+	
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 };

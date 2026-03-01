@@ -3,6 +3,8 @@
 
 #include "GameFrameworks/MD_PlayerState.h"
 
+#include "AbilitySystem/MD_AbilitySystemComponent.h"
+#include "AbilitySystem/MD_AttributeSet.h"
 #include "Characters/MD_CharacterBase.h"
 #include "GameFrameworks/MD_GameState.h"
 #include "Net/UnrealNetwork.h"
@@ -18,6 +20,30 @@ void AMD_PlayerState::Server_SetSelectedHero_Implementation(TSubclassOf<AMD_Char
 	{
 		GS->MarkHeroAsPicked(SelectedHeroClass);
 	}
+}
+
+AMD_PlayerState::AMD_PlayerState()
+{
+	
+	// Setup Ability components
+	AbilitySystemComponent = CreateDefaultSubobject<UMD_AbilitySystemComponent>(TEXT("AbilitySystem"));
+	AbilitySystemComponent->SetIsReplicated(true);
+	// Mixed режим идеален для PlayerState в MOBA
+	AbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Mixed);
+	
+	AttributeSet = CreateDefaultSubobject<UMD_AttributeSet>(TEXT("AttributeSet"));
+	
+	SetNetUpdateFrequency(100.f);
+}
+
+UAbilitySystemComponent* AMD_PlayerState::GetAbilitySystemComponent() const
+{
+	return AbilitySystemComponent;
+}
+
+UMD_AttributeSet* AMD_PlayerState::GetAttributeSet() const
+{
+	return AttributeSet;
 }
 
 void AMD_PlayerState::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const

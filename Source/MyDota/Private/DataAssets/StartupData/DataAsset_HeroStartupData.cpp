@@ -22,6 +22,6 @@ void UDataAsset_HeroStartupData::GiveToAbilitySystemComponent(UMD_AbilitySystemC
 		
 		InASCToGive->GiveAbility(AbilitySpec);
 		
-		UE_LOG(LogMyDotaGAS, Log, TEXT("%s grand ability %s"), *InASCToGive->GetOwner()->GetName(), *AbilitySpec.Ability.GetName());
+		UE_LOG(LogMyDotaGAS, Log, TEXT("HERO %s grand ability %s"), *InASCToGive->GetOwner()->GetName(), *AbilitySpec.Ability.GetName());
 	}
 }

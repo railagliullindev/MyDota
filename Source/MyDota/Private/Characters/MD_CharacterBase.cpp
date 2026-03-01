@@ -8,9 +8,23 @@
 #include "Components/CapsuleComponent.h"
 #include "DataAssets/StartupData/DataAsset_HeroStartupData.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "GameFrameworks/MD_PlayerState.h"
+#include "MyDota/MyDota.h"
+#include "Net/UnrealNetwork.h"
+
+void AMD_CharacterBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	
+	DOREPLIFETIME(AMD_CharacterBase, PS)
+}
+
 
 AMD_CharacterBase::AMD_CharacterBase()
 {
+	bReplicates = true;
+	ACharacter::SetReplicateMovement(true);
+	
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
 
 	// Don't rotate character to camera direction
@@ -28,29 +42,64 @@ AMD_CharacterBase::AMD_CharacterBase()
 	GetCharacterMovement()->bConstrainToPlane = true;
 	GetCharacterMovement()->bSnapToPlaneAtStart = true;
 	
-	// Setup Ability components
-	MD_AbilitySystemComponent = CreateDefaultSubobject<UMD_AbilitySystemComponent>(TEXT("AbilitySystem"));
-	MD_AbilitySystemComponent->SetIsReplicated(true);
-	
 	MD_AttributeSet = CreateDefaultSubobject<UMD_AttributeSet>(TEXT("AttributeSet"));
 	
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 }
 
-void AMD_CharacterBase::PossessedBy(AController* NewController)
+UAbilitySystemComponent* AMD_CharacterBase::GetAbilitySystemComponent() const
 {
-	Super::PossessedBy(NewController);
+	return MD_AbilitySystemComponent;
+}
+
+void AMD_CharacterBase::SetPlayerState(AMD_PlayerState* InPs)
+{
+	PS = InPs;
 	
-	if (!HeroStartupData.IsNull())
+	InitAbilitySystem();
+}
+
+void AMD_CharacterBase::InitAbilitySystem()
+{
+	if (PS)
 	{
-		if (UDataAsset_HeroStartupData* LoadedData = HeroStartupData.LoadSynchronous())
+		// Аналогично инициализируем на клиент
+		MD_AbilitySystemComponent = Cast<UMD_AbilitySystemComponent>(PS->GetAbilitySystemComponent());
+		MD_AttributeSet = PS->GetAttributeSet();
+		
+		// ВАЖНО: Owner — PlayerState, Avatar — Character (тело)
+		PS->GetAbilitySystemComponent()->InitAbilityActorInfo(PS, this);
+		
+		UE_LOG(LogMyDotaGAS, Log, TEXT("[%s] GAS инициализирован для %s через PlayerState"), 
+		   HasAuthority() ? TEXT("Server") : TEXT("Client"), *GetName());
+		
+		
+		if (!HeroStartupData.IsNull())
 		{
-			LoadedData->GiveToAbilitySystemComponent(MD_AbilitySystemComponent);
+			if (UDataAsset_HeroStartupData* LoadedData = HeroStartupData.LoadSynchronous())
+			{
+				LoadedData->GiveToAbilitySystemComponent(MD_AbilitySystemComponent);
+			}
 		}
+		
 	}
 }
 
-UAbilitySystemComponent* AMD_CharacterBase::GetAbilitySystemComponent() const
+// CLIENT only
+void AMD_CharacterBase::OnRep_PlayerState()
 {
-	return GetMDAbilitySystemComponent();
+	if (!PS) return;
+	
+	UE_LOG(LogMyDotaGAS, Log, TEXT("[%s] OnRep_PlayerState"), HasAuthority() ? TEXT("Server") : TEXT("Client"));
+	Super::OnRep_PlayerState();
+	
+	//InitAbilitySystem();
 }
+
+void AMD_CharacterBase::OnRep_Owner()
+{
+	Super::OnRep_Owner();
+	UE_LOG(LogMyDotaGAS, Log, TEXT("[%s] OnRep_Owner"), HasAuthority() ? TEXT("Server") : TEXT("Client"));
+	//InitAbilitySystem();
+}
+
