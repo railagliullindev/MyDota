@@ -4,7 +4,9 @@
 #include "DataAssets/StartupData/DataAsset_StartupDataBase.h"
 
 #include "GameplayEffect.h"
+#include "MD_GameplayTags.h"
 #include "AbilitySystem/MD_AbilitySystemComponent.h"
+#include "MyDota/MyDota.h"
 
 void UDataAsset_StartupDataBase::GiveToAbilitySystemComponent(UMD_AbilitySystemComponent* InASCToGive, int32 ApplyLevel)
 {
@@ -42,6 +44,9 @@ void UDataAsset_StartupDataBase::GrandAbilities(const TArray<TSubclassOf<UGamepl
 		AbilitySpec.SourceObject = InASCToGive->GetAvatarActor();
 		AbilitySpec.Level = ApplyLevel;
 		
+		
 		InASCToGive->GiveAbility(AbilitySpec);
+		
+		UE_LOG(LogMyDotaGAS, Log, TEXT("%s grand ability %s"), *InASCToGive->GetOwner()->GetName(), *AbilitySpec.Ability.GetName());
 	}
 }

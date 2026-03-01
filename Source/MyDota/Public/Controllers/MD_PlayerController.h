@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
 #include "GenericTeamAgentInterface.h"
+#include "GameModes/MD_GameMode.h"
 #include "MD_PlayerController.generated.h"
 
 class AMD_CharacterBase;
@@ -55,18 +56,6 @@ protected:
 	void Server_MoveToLocation(FVector InLocation);
 	
 	void SpawnHero();
-
-	UPROPERTY(EditDefaultsOnly, Category = "UI")
-	TSubclassOf<UUserWidget> DraftWidgetClass;
-	
-	UPROPERTY()
-	UUserWidget* DraftWidget;
-	
-	UFUNCTION()
-	void OnDraftMode();
-	UFUNCTION()
-	void OnMatchMode();
-	
 	
 protected:
 	/** Mapping context that contains click-to-move binding */

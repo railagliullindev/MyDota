@@ -11,7 +11,7 @@ class UMD_MainHUD;
 /**
  * 
  */
-UCLASS()
+UCLASS(Abstract, HideDropdown)
 class MYDOTA_API UGA_HUDManager : public UMyDotaGameplayAbility
 {
 	GENERATED_BODY()

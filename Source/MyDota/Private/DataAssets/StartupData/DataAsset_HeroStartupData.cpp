@@ -5,6 +5,7 @@
 
 #include "MyDotaStructTypes.h"
 #include "AbilitySystem/MD_AbilitySystemComponent.h"
+#include "MyDota/MyDota.h"
 
 void UDataAsset_HeroStartupData::GiveToAbilitySystemComponent(UMD_AbilitySystemComponent* InASCToGive, int32 ApplyLevel)
 {
@@ -20,5 +21,7 @@ void UDataAsset_HeroStartupData::GiveToAbilitySystemComponent(UMD_AbilitySystemC
 		AbilitySpec.GetDynamicSpecSourceTags().AddTag(AbilitySet.InputTag);
 		
 		InASCToGive->GiveAbility(AbilitySpec);
+		
+		UE_LOG(LogMyDotaGAS, Log, TEXT("%s grand ability %s"), *InASCToGive->GetOwner()->GetName(), *AbilitySpec.Ability.GetName());
 	}
 }

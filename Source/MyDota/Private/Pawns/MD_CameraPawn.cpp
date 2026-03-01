@@ -51,24 +51,31 @@ void AMD_CameraPawn::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	
 	TArray<AActor*> FoundVolumes;
 	UGameplayStatics::GetAllActorsWithTag(GetWorld(), FName("CameraLimit"), FoundVolumes);
 	if (FoundVolumes.Num() > 0)
 	{
 		CameraBounds = FoundVolumes[0]->GetComponentsBoundingBox();
 	}
-
-	AbilitySystem->InitAbilityActorInfo(this, this);
-	if (!StartupData.IsValid())
+	
+	if (!HasAuthority())
 	{
-		if (UDataAsset_StartupDataBase* LoadedData = StartupData.LoadSynchronous())
+		AbilitySystem->InitAbilityActorInfo(this, this);
+	}else
+	{
+		AbilitySystem->InitAbilityActorInfo(this, this);
+		if (!StartupData.IsValid())
 		{
-			LoadedData->GiveToAbilitySystemComponent(AbilitySystem);
+			if (UDataAsset_StartupDataBase* LoadedData = StartupData.LoadSynchronous())
+			{
+				LoadedData->GiveToAbilitySystemComponent(AbilitySystem);
+			}
 		}
-	}
-	else
-	{
-		StartupData->GiveToAbilitySystemComponent(AbilitySystem);
+		else
+		{
+			StartupData->GiveToAbilitySystemComponent(AbilitySystem);
+		}
 	}
 }
 
@@ -89,7 +96,6 @@ void AMD_CameraPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 	
 	DotaInputComponent->BindAbilityInputAction(InputConfigDataAsset, this, &ThisClass::Input_AbilityInputPressed, &ThisClass::Input_AbilityInputReleased);
 }
-
 void AMD_CameraPawn::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);

@@ -23,12 +23,12 @@ void AMD_GameMode::BeginPlay()
 	MD_GameState = GetGameState<AMD_GameState>();
 	checkf(MD_GameState, TEXT("Game state is not AMD_GameState"));
 	
-	SetMatchStage(EMathStage::Draft);
+	SetMatchStage(EMathStage::WaitingForPlayers);
 }
 
 void AMD_GameMode::PostLogin(APlayerController* NewPlayer)
 {
-	if (MatchStage != EMathStage::Draft) return;
+	if (MatchStage != EMathStage::WaitingForPlayers) return;
 	if (!NewPlayer) return;
 	
 	Super::PostLogin(NewPlayer);
@@ -42,13 +42,6 @@ void AMD_GameMode::PostLogin(APlayerController* NewPlayer)
 	}
 	
 	SpawnCameraForPlayer(NewPlayer);
-	
-	AMD_PlayerController* PC = Cast<AMD_PlayerController>(NewPlayer);
-	if (PC)
-	{
-		PC->SetMatchMode(EMathStage::Draft);
-	}
-	
 }
 
 void AMD_GameMode::SetMatchStage(EMathStage NewStage)
@@ -59,6 +52,10 @@ void AMD_GameMode::SetMatchStage(EMathStage NewStage)
 	
 	switch (MatchStage)
 	{
+	case EMathStage::WaitingForPlayers:
+		UE_LOG(LogTemp, Warning, TEXT("AMD_GameMode::SetMatchStage WAITINGFORPLAYERS"));
+		WaitingForPlayers();
+		break;
 	case EMathStage::Draft:
 		UE_LOG(LogTemp, Warning, TEXT("AMD_GameMode::SetMatchStage DRAFT"));
 		Draft();
@@ -76,6 +73,18 @@ void AMD_GameMode::SetMatchStage(EMathStage NewStage)
 	}
 	
 	MD_GameState->SetMatchStage(NewStage);
+}
+
+void AMD_GameMode::WaitingForPlayers()
+{
+	const float Delay = 2.0f; // Задержка в секундах
+
+	FTimerHandle TimerHandle;
+	GetWorldTimerManager().SetTimer(TimerHandle, [this]()
+	{
+		SetMatchStage(EMathStage::Draft);
+
+	}, Delay, false);
 }
 
 void AMD_GameMode::Draft()

@@ -48,6 +48,23 @@ void UMD_AbilitySystemComponent::OnRemoveAbility(FGameplayAbilitySpec& AbilitySp
 	}
 }
 
+void UMD_AbilitySystemComponent::CancelAbilityWithTag(const FGameplayTag& InTag)
+{
+	for (const auto& AbilitySpec : GetActivatableAbilities())
+	{
+		UE_LOG(LogMyDotaGAS, Warning, TEXT("Cancel tags for %s"), *AbilitySpec.Ability.GetName());
+		for (auto Element : AbilitySpec.Ability->AbilityTags)
+		{
+			UE_LOG(LogMyDotaGAS, Warning, TEXT("Cancel tags %s"), *Element.ToString());
+		}
+		if (AbilitySpec.Ability->AbilityTags.HasTagExact(InTag) && AbilitySpec.IsActive())
+		{
+			UE_LOG(LogMyDotaGAS, Warning, TEXT("find cancel ability %s"), *AbilitySpec.Ability.GetName());
+			CancelAbilityHandle(AbilitySpec.Handle);
+		}
+	}
+}
+
 void UMD_AbilitySystemComponent::OnAbilityInputPressed(const FGameplayTag& InInputTag)
 {
 	if (!InInputTag.IsValid() && !AbilityTagMap.Contains(InInputTag)) return;

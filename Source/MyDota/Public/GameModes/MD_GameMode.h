@@ -13,6 +13,7 @@ class AMD_CharacterBase;
 UENUM()
 enum class EMathStage : uint8
 {
+	WaitingForPlayers,
 	Draft,
 	PreGame,
 	InProgress,
@@ -37,6 +38,7 @@ public:
 	
 protected:
 	
+	void WaitingForPlayers();
 	void Draft();
 	void PreGame();
 	void InProgress();

@@ -3,9 +3,15 @@
 
 #include "GameFrameworks/MD_GameState.h"
 
+#include "AbilitySystemComponent.h"
+#include "GameplayTagContainer.h"
+#include "MD_GameplayTags.h"
+#include "AbilitySystem/MD_AbilitySystemComponent.h"
 #include "Characters/MD_CharacterBase.h"
+#include "Controllers/MD_PlayerController.h"
 #include "GameModes/MD_GameMode.h"
 #include "Net/UnrealNetwork.h"
+#include "Pawns/MD_CameraPawn.h"
 
 void AMD_GameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
@@ -19,12 +25,31 @@ void AMD_GameState::OnRep_MatchStage()
 {
 	switch (MathStage)
 	{
+	case EMathStage::Draft:
+		UE_LOG(LogTemp, Warning, TEXT("Клиент: Начался драфт"));
+		
+		// Находим локальный контроллер и говорим ему активировать Draft-абилку
+		if (AMD_PlayerController* PC = Cast<AMD_PlayerController>(GetWorld()->GetFirstPlayerController()))
+		{
+			if (AMD_CameraPawn* CamPawn = Cast<AMD_CameraPawn>(PC->GetPawn()))
+			{
+				CamPawn->GetAbilitySystemComponent()->TryActivateAbilitiesByTag(FGameplayTagContainer{MyDotaTags::Ability_ShowDraft});
+			}
+		}
+		break;
+		
 		case EMathStage::InProgress:
 			UE_LOG(LogTemp, Warning, TEXT("Клиент: Игра началась"));
-			break;
-		case EMathStage::Draft:
-			UE_LOG(LogTemp, Warning, TEXT("Клиент: Начался драфт"));
-			break;
+		
+		if (AMD_PlayerController* PC = Cast<AMD_PlayerController>(GetWorld()->GetFirstPlayerController()))
+		{
+			if (AMD_CameraPawn* CamPawn = Cast<AMD_CameraPawn>(PC->GetPawn()))
+			{
+				CamPawn->GetMDAbilitySystemComponent()->CancelAbilityWithTag(MyDotaTags::Ability_ShowDraft);
+				CamPawn->GetAbilitySystemComponent()->TryActivateAbilitiesByTag(FGameplayTagContainer{MyDotaTags::Ability_ShowGameplayHUD});
+			}
+		}
+		break;
 		
 		default:
 			break;

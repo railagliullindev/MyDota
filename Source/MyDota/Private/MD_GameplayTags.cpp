@@ -16,10 +16,13 @@ namespace MyDotaTags
 	UE_DEFINE_GAMEPLAY_TAG(Character_ManaMax, "Character.ManaMax");
 	
 	/** Camera Tags */
+	UE_DEFINE_GAMEPLAY_TAG(Camera_Locked, "Camera.Locked");
 	UE_DEFINE_GAMEPLAY_TAG(Camera_FollowingHero, "Camera.FollowingHero");
 	
-	UE_DEFINE_GAMEPLAY_TAG(Ability, "Ability");
 	
 	/** Camera Ability Tags */
+	UE_DEFINE_GAMEPLAY_TAG(Ability, "Ability");
+	UE_DEFINE_GAMEPLAY_TAG(Ability_ShowDraft, "Ability.ShowDraft");
+	UE_DEFINE_GAMEPLAY_TAG(Ability_ShowGameplayHUD, "Ability.ShowGameplayHUD");
 	UE_DEFINE_GAMEPLAY_TAG(Ability_Camera_FollowingHero, "Ability.Camera.FollowingHero");
 }

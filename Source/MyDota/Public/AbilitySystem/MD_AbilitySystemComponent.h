@@ -17,8 +17,9 @@ class MYDOTA_API UMD_AbilitySystemComponent : public UAbilitySystemComponent
 public:
 	
 	virtual void OnGiveAbility(FGameplayAbilitySpec& AbilitySpec) override;
-	
 	virtual void OnRemoveAbility(FGameplayAbilitySpec& AbilitySpec) override;
+	
+	void CancelAbilityWithTag(const FGameplayTag& InTag);
 	
 	//UFUNCTION(BlueprintCallable, Category = "Ability", meta = (Categories = "InputTag"))
 	//bool TryActivateAbilityWithTag(FGameplayTag InInputTag);

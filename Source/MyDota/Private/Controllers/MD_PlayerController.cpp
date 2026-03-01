@@ -79,14 +79,24 @@ void AMD_PlayerController::SetMatchMode_Implementation(EMathStage InMatchStage)
 	switch (MatchStage)
 	{
 	case EMathStage::Draft:
-		OnDraftMode();
 		break;
 	case EMathStage::PreGame:
 		break;
 	case EMathStage::InProgress:
-		OnMatchMode();
+		if (ULocalPlayer* LocalPlayer = GetLocalPlayer())
+		{
+			if (UEnhancedInputLocalPlayerSubsystem* Subsystem = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
+			{
+				if (ClickMoveMappingContext)
+				{
+					Subsystem->AddMappingContext(ClickMoveMappingContext,0);
+				}
+			}
+		}
 		break;
 	case EMathStage::PostGame:
+		break;
+	default:
 		break;
 	}
 }
@@ -153,47 +163,5 @@ void AMD_PlayerController::SpawnHero()
 	if (Hero)
 	{
 		OnRep_Hero(); 
-	}
-}
-
-void AMD_PlayerController::OnDraftMode()
-{
-	if (IsLocalController() && DraftWidgetClass)
-	{
-		DraftWidget = CreateWidget<UUserWidget>(this, DraftWidgetClass);
-		if (DraftWidget)
-		{            
-			DraftWidget->AddToViewport(0);
-			FInputModeUIOnly InputMode;
-			InputMode.SetWidgetToFocus(DraftWidget->GetCachedWidget());
-			InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::LockAlways);
-			SetInputMode(InputMode);
-			bShowMouseCursor = true;
-		}
-	}
-}
-
-void AMD_PlayerController::OnMatchMode()
-{
-	if (DraftWidget)
-	{
-		DraftWidget->RemoveFromParent();
-		DraftWidget = nullptr;
-		
-		FInputModeGameAndUI InputMode;
-		InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::LockAlways);
-		SetInputMode(InputMode);
-		bShowMouseCursor = true;
-	}
-	
-	if (ULocalPlayer* LocalPlayer = GetLocalPlayer())
-	{
-		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
-		{
-			if (ClickMoveMappingContext)
-			{
-				Subsystem->AddMappingContext(ClickMoveMappingContext,0);
-			}
-		}
 	}
 }
