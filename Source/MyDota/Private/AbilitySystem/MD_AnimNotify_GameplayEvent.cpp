@@ -1,7 +1,7 @@
 // Rail Agliullin Dev. All Rights Reserved
 
-#include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystem/MD_AnimNotify_GameplayEvent.h"
+#include "AbilitySystemBlueprintLibrary.h"
 
 void UMD_AnimNotify_GameplayEvent::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
 	const FAnimNotifyEventReference& EventReference)

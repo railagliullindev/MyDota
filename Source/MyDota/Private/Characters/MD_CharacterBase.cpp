@@ -39,7 +39,7 @@ AMD_CharacterBase::AMD_CharacterBase()
 
 	// Don't rotate character to camera direction
 	bUseControllerRotationPitch = false;
-	bUseControllerRotationYaw = false;
+	bUseControllerRotationYaw = true;
 	bUseControllerRotationRoll = false;
 	
 	PrimaryActorTick.bCanEverTick = false;

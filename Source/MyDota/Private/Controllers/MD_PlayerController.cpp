@@ -143,6 +143,7 @@ void AMD_PlayerController::InputAttack()
 		AActor* Target = Hit.GetActor();
 		if (Target)
 		{
+			if (Target == Hero) return;
 			if (!Cast<APawn>(Hit.GetActor())) return;
 			
 			UE_LOG(LogMyDotaGAS, Warning, TEXT("InputAttack: Hit target %s"), *Target->GetName());
