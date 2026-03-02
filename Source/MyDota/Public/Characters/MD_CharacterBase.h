@@ -5,8 +5,11 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "AbilitySystemInterface.h"
+#include "GameplayEffectTypes.h"
 #include "MD_CharacterBase.generated.h"
 
+class UGameplayEffect;
+struct FGameplayEffectSpecHandle;
 struct FOnAttributeChangeData;
 class UMD_OverheadWidget;
 class UWidgetComponent;
@@ -37,6 +40,12 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
 	TSubclassOf<UMD_OverheadWidget> OverheadWidgetClass;
 	
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_SpawnProjectile(TSubclassOf<AActor> ProjClass, FVector Loc, FRotator Rot, AActor* Target);
+	
+	// Функция-фабрика: создает спеку на сервере
+	FGameplayEffectSpecHandle MakeDamageSpec(TSubclassOf<UGameplayEffect> EffectClass, float Level);
+	
 protected:
 	
 	// Переопределения для мультиплеера
@@ -60,6 +69,15 @@ protected:
 	
 	UPROPERTY()
 	UMD_OverheadWidget* OverheadWidget;
+	
+	// Переменная класса урона, которую можно настроить в BP героя
+	UPROPERTY(EditDefaultsOnly, Category = "Stats")
+	TSubclassOf<UGameplayEffect> DefaultAttackDamageEffect;
+	
+	// Временный кэш для передачи данных серверному снаряду. 
+	// НЕ реплицируем (UPROPERTY без параметров), чтобы не грузить сеть.
+	UPROPERTY()
+	FGameplayEffectSpecHandle CurrentProjectileSpec;
 	
 	void InitHealthBar();
 	void OnValueChanged(const FOnAttributeChangeData& Data);

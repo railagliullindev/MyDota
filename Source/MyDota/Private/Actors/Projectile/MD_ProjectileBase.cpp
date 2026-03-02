@@ -20,19 +20,15 @@ AMD_ProjectileBase::AMD_ProjectileBase()
 	ProjectileMovement = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovement"));
 	ProjectileMovement->InitialSpeed = 1500.f;
 	ProjectileMovement->MaxSpeed = 1500.f;
-	
+	ProjectileMovement->bIsHomingProjectile = true;
+	ProjectileMovement->HomingAccelerationMagnitude = 5000.f;
 	ProjectileMovement->ProjectileGravityScale = 0.f; // Летим по прямой без падения
+	
 	ProjectileMovement->bRotationFollowsVelocity = true;
 	ProjectileMovement->bInitialVelocityInLocalSpace = true;
 	
-	// --- НАСТРОЙКИ ГОМИНГА (Dota-style) ---
-	ProjectileMovement->bIsHomingProjectile = true;
-	// Насколько резко снаряд будет доворачивать (чем выше, тем меньше шансов увернуться)
-	ProjectileMovement->HomingAccelerationMagnitude = 5000.f;
-	
-	bReplicates = true;
-	bAlwaysRelevant = true;
-	SetReplicateMovement(true);
+	bReplicates = false;
+	SetReplicateMovement(false);
 }
 
 
@@ -47,14 +43,19 @@ void AMD_ProjectileBase::BeginPlay()
 void AMD_ProjectileBase::OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (HasAuthority() && DamageEffectSpecHandle.IsValid() && OtherActor)
+	if (OtherActor == GetOwner()) return;
+	
+	if (HasAuthority())
 	{
 		UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(OtherActor);
 		if (TargetASC)
 		{
-			TargetASC->ApplyGameplayEffectSpecToSelf(*DamageEffectSpecHandle.Data.Get());
-			Destroy();
+			if (DamageEffectSpecHandle.IsValid())
+			{
+				TargetASC->ApplyGameplayEffectSpecToSelf(*DamageEffectSpecHandle.Data.Get());
+			}
 		}
 	}
+	Destroy();
 }
 

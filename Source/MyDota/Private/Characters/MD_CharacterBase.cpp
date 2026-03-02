@@ -5,14 +5,17 @@
 
 #include "AbilitySystem/MD_AbilitySystemComponent.h"
 #include "AbilitySystem/MD_AttributeSet.h"
+#include "Actors/Projectile/MD_ProjectileBase.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/WidgetComponent.h"
 #include "DataAssets/StartupData/DataAsset_HeroStartupData.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "GameFramework/ProjectileMovementComponent.h"
 #include "GameFrameworks/MD_PlayerState.h"
 #include "MyDota/MyDota.h"
 #include "Net/UnrealNetwork.h"
 #include "Widgets/Overhead/MD_OverheadWidget.h"
+#include "ActiveGameplayEffectHandle.h"
 
 void AMD_CharacterBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
@@ -122,6 +125,50 @@ void AMD_CharacterBase::InitHealthBar()
 			ASC->GetGameplayAttributeValueChangeDelegate(AS->GetManaAttribute()).AddUObject(this, &AMD_CharacterBase::OnValueChanged);
 		}
 	}
+}
+
+void AMD_CharacterBase::Multicast_SpawnProjectile_Implementation(TSubclassOf<AActor> ProjClass, FVector Loc,
+	FRotator Rot, AActor* Target)
+{
+	// Этот код выполняется на СЕРВЕРЕ и на ВСЕХ КЛИЕНТАХ
+	if (!ProjClass || !Target) return;
+
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.Owner = this; // Владелец - наш герой
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	AMD_ProjectileBase* Projectile = GetWorld()->SpawnActor<AMD_ProjectileBase>(ProjClass, Loc, Rot, SpawnParams);
+    
+	if (Projectile && Projectile->ProjectileMovement)
+	{
+		// Привязываем цель для самонаведения (локально у каждого)
+		Projectile->ProjectileMovement->HomingTargetComponent = Target->GetRootComponent();
+
+		// Передаем данные об уроне (валидны только на сервере)
+		if (HasAuthority())
+		{
+			auto Spec = MakeDamageSpec(DefaultAttackDamageEffect, 1);
+			Projectile->DamageEffectSpecHandle = Spec; // Сохрани спеку в переменной героя перед мультикастом
+		}
+	}
+}
+
+FGameplayEffectSpecHandle AMD_CharacterBase::MakeDamageSpec(TSubclassOf<UGameplayEffect> EffectClass, float Level)
+{
+	// 1. Проверяем наличие класса эффекта и ASC
+	if (!EffectClass || !ASC) 
+	{
+		return FGameplayEffectSpecHandle();
+	}
+
+	// 2. Создаем контекст (хранит информацию о том, КТО наносит урон)
+	FGameplayEffectContextHandle Context = ASC->MakeEffectContext();
+	Context.AddSourceObject(this);
+	//Context.AddInstigator(this, this);// AddByrefSourceActors(this, this); // Добавляем себя как источник
+
+	// 3. ВЫЗЫВАЕМ МЕТОД У КОМПОНЕНТА (ASC)
+	// Именно здесь создается "пакет данных" об уроне
+	return ASC->MakeOutgoingSpec(EffectClass, Level, Context);
 }
 
 // CLIENT only
