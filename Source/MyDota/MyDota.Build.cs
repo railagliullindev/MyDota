@@ -22,7 +22,8 @@ public class MyDota : ModuleRules
 			"NavigationSystem",
 			"UMG",
 			"Slate",
-			"SlateCore"
+			"SlateCore",
+			"NetCore"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });

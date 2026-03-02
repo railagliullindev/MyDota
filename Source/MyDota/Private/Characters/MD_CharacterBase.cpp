@@ -15,7 +15,7 @@
 #include "MyDota/MyDota.h"
 #include "Net/UnrealNetwork.h"
 #include "Widgets/Overhead/MD_OverheadWidget.h"
-#include "ActiveGameplayEffectHandle.h"
+#include "Subsystems/FogOfWarManager.h"
 
 void AMD_CharacterBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
@@ -77,6 +77,23 @@ void AMD_CharacterBase::BeginPlay()
 	Super::BeginPlay();
 	
 	InitHealthBar();
+	
+	// Проверяем, что мы на сервере (HasAuthority) 
+	// или это не клиентская копия в мультиплеере
+	if (HasAuthority())
+	{
+		AFogOfWarManager* FogManager = AFogOfWarManager::Get(this);
+		if (FogManager)
+		{
+			// Регистрируем юнит как источник обзора
+			FogManager->RegisterSource(this, 1200.0f); 
+			UE_LOG(LogTemp, Warning, TEXT("Server: Registered %s as Vision Source"), *GetName());
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("Server: FogManager NOT FOUND during BeginPlay!"));
+		}
+	}
 }
 
 void AMD_CharacterBase::SetPlayerState(AMD_PlayerState* InPs)
