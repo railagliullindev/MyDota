@@ -23,22 +23,20 @@ public:
 
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
-	//-----------------------------------
-	// Инициализация
 	void InitFogManager();
-	void InitTexture();
-	//-----------------------------------
 
-	// Настройки сетки
+	/** Размер одной ячейки в юнитах UE */
 	UPROPERTY(EditDefaultsOnly, Category = "Fog Settings")
-	float GridCellSize = 100.f; // Размер одной ячейки в юнитах UE
+	float GridCellSize = 100.f;
 
+	/** Размер карты в ячейках */
 	UPROPERTY(EditDefaultsOnly, Category = "Fog Settings")
-	FIntPoint MapSize = FIntPoint(256, 256); // Размер карты в ячейках
+	FIntPoint MapSize = FIntPoint(256, 256);
 
-	// Метод для обновления видимости от юнита
+	/** Метод для обновления видимости от юнита */
 	void UpdateLineOfSight(FVector Origin, float Radius);
 
+	/** Регистрация в сети */
 	void RegisterSource(AActor* InActor, float InRadius);
 
 protected:
@@ -50,73 +48,78 @@ protected:
 	UFUNCTION()
 	void OnRep_CompressedFog();
 
-	// массив структур для всех источников обзора
+	/** Массив Actor'ов для расчета видимости */
 	UPROPERTY()
 	TArray<FVisionSource> ActiveVisionSources;
 
 private:
 
-	//--------------------------------------------------------------
-	// Черновик или рабочая область памяти на сервере
+	/** Чтобы клиент Radiant не получал данные тумана Dire, переопредели проверку релевантности */
+	virtual bool IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const override;
+
+	/** Для реализации Singleton */
+	static AFogOfWarManager* Instance;
+
+	/** Материал тумана войны (Post Process) */
+	UPROPERTY(EditDefaultsOnly, Category = "Fog Settings")
+	UMaterialInterface* PostProcessMaterial;
+
+	/** Динамический экземпляр материала */
+	UPROPERTY()
+	UMaterialInstanceDynamic* FogMaterialInstance;
+
+	/** Черновик или рабочая область памяти на сервере */
 	TArray<uint8> RawVisibilityData;
 
-	// Массив высот и препятствий (Статика)
+	/** Массив высот */
 	TArray<uint8> TerrainHeights;
+
+	/** Массив статических препятсвий */
 	TArray<bool> StaticObstacles;
 
-	// Массив для репликации (Биты)
+	/** Массив для репликации (Биты) */
 	UPROPERTY(ReplicatedUsing = OnRep_CompressedFog)
 	TArray<uint32> CompressedFogData;
 
-	// Массив для текстуры на клиенте (RGBA)
+	/** Массив для текстуры на клиенте (RGBA) */
 	TArray<FColor> PixelBuffer;
-	//--------------------------------------------------------------
-
-	static AFogOfWarManager* Instance;
-
-	void TraceLine(FIntPoint Start, FIntPoint End, int32 MaxRange, uint8 ViewerHeight);
-
-	void UpdateTexture();
-
-	// Вспомогательная функция инициализации
-	void BakeLevelData();
-
-	// Хелпер для получения индекса из координат сетки
-	FORCEINLINE int32 GetIndex(FIntPoint GridCoords) const
-	{
-		return GridCoords.X + GridCoords.Y * MapSize.X;
-	}
-
-	uint8 GetTerrainHeight(FIntPoint GridCoords) const;
-	FVector GridToWorld(FIntPoint GridCoords) const;
-
-	// Чтобы клиент Radiant не получал данные тумана Dire, переопредели проверку релевантности:
-	virtual bool IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const override;
 
 	/** Подготовка текстуры в классе менеджера */
 	UPROPERTY()
 	UTexture2D* FogTexture;
 
-	// Специальная структура для обновления регионов текстуры
+	/** Специальная структура для обновления регионов текстуры */
 	FUpdateTextureRegion2D* TextureRegion;
+
+	/** Хелпер для получения индекса из координат сетки */
+	FORCEINLINE int32 GetIndex(FIntPoint GridCoords) const
+	{
+		return GridCoords.X + GridCoords.Y * MapSize.X;
+	}
+
+	// Вспомогательная функция инициализации
+	void BakeLevelData();
+
+	/** Инициализация текстуры маски для шейдера */
+	void InitTexture();
+
+	/** Передача данных из PixelBuffer в нашу текстуру */
+	void UpdateTexture();
+
+	/** Рассчитать туман войны */
+	void CalculateFogOfWar();
 
 	FTimerHandle TimerHandle;
 
-	void CheckAllFogOfWar();
-
-	//-----------------Связка менеджера и материала-------
-	UPROPERTY(EditDefaultsOnly, Category = "Fog Settings")
-	UMaterialInterface* PostProcessMaterialBase;
-
-	UPROPERTY()
-	UMaterialInstanceDynamic* FogMaterialInstance;
-	//---------------------------------------------------
-
-	//------------------Вычисления-----------------------
+	/** Получить ячейку по из мировых координат */
 	FIntPoint WorldToGrid(FVector Location);
-};
 
-/*
- *  if (GetNetMode() < NM_Client) { // Только на сервере
- *  AFogOfWarManager::Get(this)->RegisterSource(this, VisionRadius, TeamID);
-}*/
+	/** Получить мировые координаты из ячейки */
+	FVector GridToWorld(FIntPoint GridCoords) const;
+
+	/** Расчет видимости */
+	void TraceLine(FIntPoint Start, FIntPoint End, int32 MaxRange, uint8 ViewerHeight);
+
+	/** Получить высоту ячейки */
+	uint8 GetTerrainHeight(FIntPoint GridCoords) const;
+};

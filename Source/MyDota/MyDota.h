@@ -5,3 +5,4 @@
 #include "CoreMinimal.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogMyDotaGAS, Log, All);
+DECLARE_LOG_CATEGORY_EXTERN(LogFogOfWar, Log, All);

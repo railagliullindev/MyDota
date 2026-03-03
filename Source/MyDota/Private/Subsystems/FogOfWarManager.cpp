@@ -3,6 +3,7 @@
 #include "Subsystems/FogOfWarManager.h"
 
 #include "EngineUtils.h"
+#include "MyDota/MyDota.h"
 #include "Net/UnrealNetwork.h"
 
 AFogOfWarManager::AFogOfWarManager()
@@ -15,13 +16,13 @@ AFogOfWarManager::AFogOfWarManager()
 void AFogOfWarManager::BeginPlay()
 {
 	Super::BeginPlay();
-	Instance = this; // Регистрируем себя при спавне
+	Instance = this;
 
 	InitFogManager();
 
 	if (HasAuthority())
 	{
-		GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &AFogOfWarManager::CheckAllFogOfWar, 0.1f, true);
+		GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &AFogOfWarManager::CalculateFogOfWar, 0.1f, true);
 	}
 }
 
@@ -35,17 +36,17 @@ void AFogOfWarManager::OnRep_CompressedFog()
 {
 	PixelBuffer[0] = FColor::Red;
 
-	// Проверка
+	// Для проверки: работает ли связка AFogOfWarManager -> Шейдер
 	// for(auto& Color : PixelBuffer) Color = FColor::Red;
 
 	for (int32 i = 0; i < PixelBuffer.Num(); ++i)
 	{
-		int32 WordIndex = i / 32;
-		int32 BitIndex = i % 32;
-		bool bIsVisible = (CompressedFogData[WordIndex] >> BitIndex) & 1;
+		const int32 WordIndex = i / 32;
+		const int32 BitIndex = i % 32;
+		const bool bIsVisible = (CompressedFogData[WordIndex] >> BitIndex) & 1;
 
 		// Текущее состояние в буфере
-		FColor TargetColor = bIsVisible ? FColor::White : FColor(127, 127, 127, 255);
+		const FColor TargetColor = bIsVisible ? FColor::White : FColor(127, 127, 127, 255);
 
 		// Для плавности можно делать Lerp между старым цветом и новым,
 		// но для начала просто записываем:
@@ -105,21 +106,17 @@ void AFogOfWarManager::UpdateTexture()
 	if (!FogTexture) return;
 
 	// Быстрая заливка буфера в видеопамять
-	auto RegionData = TextureRegion;
-	auto DataPtr = PixelBuffer.GetData();
+	const auto RegionData = TextureRegion;
+	const auto DataPtr = PixelBuffer.GetData();
 
 	FogTexture->UpdateTextureRegions(0, 1, RegionData, MapSize.X * 4, 4, (uint8*)DataPtr);
 }
 
 FIntPoint AFogOfWarManager::WorldToGrid(FVector Location)
 {
-	// 1. Смещение от центра (0,0,0)
-	// 2. Делим на размер ячейки (100)
-	// 3. Прибавляем половину сетки (29), чтобы (0,0) мира стал (29,29) в сетке
 	int32 GridX = FMath::FloorToInt(Location.X / GridCellSize) + (MapSize.X / 2);
 	int32 GridY = FMath::FloorToInt(Location.Y / GridCellSize) + (MapSize.Y / 2);
 
-	// Обязательный зажим в границы массива [0...57]
 	GridX = FMath::Clamp(GridX, 0, MapSize.X - 1);
 	GridY = FMath::Clamp(GridY, 0, MapSize.Y - 1);
 
@@ -132,7 +129,7 @@ void AFogOfWarManager::BakeLevelData()
 
 	if (TotalCells <= 0)
 	{
-		UE_LOG(LogTemp, Error, TEXT("MapSize is Zero! Check your Blueprint/Editor settings."));
+		UE_LOG(LogFogOfWar, Error, TEXT("FogManager [Server]: MapSize is Zero!"));
 		return;
 	}
 
@@ -209,7 +206,7 @@ bool AFogOfWarManager::IsNetRelevantFor(const AActor* RealViewer, const AActor* 
 	// return false;
 }
 
-void AFogOfWarManager::CheckAllFogOfWar()
+void AFogOfWarManager::CalculateFogOfWar()
 {
 	// 1. Проверка безопасности: сервер и наличие данных
 	if (!HasAuthority() || RawVisibilityData.Num() == 0) return;
@@ -224,8 +221,6 @@ void AFogOfWarManager::CheckAllFogOfWar()
 		}
 	}
 
-	FString Who = HasAuthority() ? "Server" : "Client";
-	UE_LOG(LogTemp, Warning, TEXT("Fog [%s] : Sources Count = %d"), *Who, ActiveVisionSources.Num());
 	// 3. Обновление обзора от всех живых источников
 	// Допустим, у тебя есть список зарегистрированных юнитов
 	for (FVisionSource& Source : ActiveVisionSources)
@@ -241,10 +236,10 @@ void AFogOfWarManager::CheckAllFogOfWar()
 	// Это автоматически вызовет OnRep_CompressedFog у клиентов
 	for (int32 i = 0; i < RawVisibilityData.Num(); ++i)
 	{
-		int32 WordIndex = i / 32;
-		int32 BitIndex = i % 32;
+		const int32 WordIndex = i / 32;
+		const int32 BitIndex = i % 32;
 
-		bool bIsVisible = (RawVisibilityData[i] == 255);
+		const bool bIsVisible = (RawVisibilityData[i] == 255);
 
 		if (bIsVisible) CompressedFogData[WordIndex] |= (1 << BitIndex);
 		else CompressedFogData[WordIndex] &= ~(1 << BitIndex);
@@ -258,14 +253,14 @@ void AFogOfWarManager::CheckAllFogOfWar()
 void AFogOfWarManager::UpdateLineOfSight(FVector Origin, float Radius)
 {
 	FIntPoint Center = WorldToGrid(Origin);
-	int32 RadiusInCells = FMath::RoundToInt(Radius / GridCellSize);
-	uint8 ViewerHeight = GetTerrainHeight(Center); // Высота смотрящего
+	const int32 RadiusInCells = FMath::RoundToInt(Radius / GridCellSize);
+	const uint8 ViewerHeight = GetTerrainHeight(Center); // Высота смотрящего
 
 	// 1. Определяем границы квадрата для итерации (оптимизация)
-	int32 MinX = FMath::Max(0, Center.X - RadiusInCells);
-	int32 MaxX = FMath::Min(MapSize.X - 1, Center.X + RadiusInCells);
-	int32 MinY = FMath::Max(0, Center.Y - RadiusInCells);
-	int32 MaxY = FMath::Min(MapSize.Y - 1, Center.Y + RadiusInCells);
+	const int32 MinX = FMath::Max(0, Center.X - RadiusInCells);
+	const int32 MaxX = FMath::Min(MapSize.X - 1, Center.X + RadiusInCells);
+	const int32 MinY = FMath::Max(0, Center.Y - RadiusInCells);
+	const int32 MaxY = FMath::Min(MapSize.Y - 1, Center.Y + RadiusInCells);
 
 	// 2. Итерируем по периметру круга и пускаем лучи
 	for (int32 x = MinX; x <= MaxX; x++)
@@ -282,22 +277,18 @@ void AFogOfWarManager::UpdateLineOfSight(FVector Origin, float Radius)
 
 void AFogOfWarManager::RegisterSource(AActor* InActor, float InRadius)
 {
-	UE_LOG(LogTemp, Warning, TEXT("RegisterSource"));
-
 	if (InActor)
 	{
 		FVisionSource NewSource;
 		NewSource.SourceActor = InActor;
 		NewSource.Radius = InRadius;
 		ActiveVisionSources.Add(NewSource);
-
-		UE_LOG(LogTemp, Log, TEXT("FogManager: New source added! Total sources: %d"), ActiveVisionSources.Num());
 	}
 }
 
 AFogOfWarManager* AFogOfWarManager::Get(const UObject* WorldContextObject)
 {
-	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
+	const UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
 	if (!World) return nullptr;
 
 	for (TActorIterator<AFogOfWarManager> It(World); It; ++It)
@@ -319,15 +310,17 @@ void AFogOfWarManager::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty
 
 void AFogOfWarManager::InitFogManager()
 {
+	const FString RoleString = HasAuthority() ? "Server" : "Client";
+
 	// 1. Защита от нулевого размера
 	if (MapSize.X <= 0 || MapSize.Y <= 0)
 	{
-		UE_LOG(LogTemp, Error, TEXT("FogManager: MapSize is Invalid (%d, %d)!"), MapSize.X, MapSize.Y);
+		UE_LOG(LogFogOfWar, Error, TEXT("FogManager [%s]: MapSize is Invalid (%d, %d)!"), *RoleString, MapSize.X, MapSize.Y);
 		return;
 	}
 
-	int32 TotalCells = MapSize.X * MapSize.Y;
-	UE_LOG(LogTemp, Warning, TEXT("FogManager: Initializing for %d cells..."), TotalCells);
+	const int32 TotalCells = MapSize.X * MapSize.Y;
+	UE_LOG(LogFogOfWar, Log, TEXT("FogManager [%s]: Initializing for %d cells..."), *RoleString, TotalCells);
 
 	// 2. Инициализация статических данных (Нужны и серверу, и клиенту для рейкастов/логики)
 	TerrainHeights.Empty();
@@ -343,7 +336,7 @@ void AFogOfWarManager::InitFogManager()
 		RawVisibilityData.SetNumZeroed(TotalCells);
 
 		// Размер битового массива: количество ячеек / 32 (округляем вверх)
-		int32 BitArraySize = FMath::DivideAndRoundUp(TotalCells, 32);
+		const int32 BitArraySize = FMath::DivideAndRoundUp(TotalCells, 32);
 		CompressedFogData.Empty();
 		CompressedFogData.SetNumZeroed(BitArraySize);
 
@@ -361,7 +354,7 @@ void AFogOfWarManager::InitFogManager()
 		InitTexture();
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("FogManager: Initialization Complete."));
+	UE_LOG(LogFogOfWar, Log, TEXT("FogManager [%s]: Initialization Complete."), *RoleString);
 }
 
 void AFogOfWarManager::InitTexture()
@@ -375,10 +368,10 @@ void AFogOfWarManager::InitTexture()
 	PixelBuffer.SetNumUninitialized(MapSize.X * MapSize.Y);
 	TextureRegion = new FUpdateTextureRegion2D(0, 0, 0, 0, MapSize.X, MapSize.Y);
 
-	if (PostProcessMaterialBase)
+	if (PostProcessMaterial)
 	{
 		// 1. Создаем динамический экземпляр
-		FogMaterialInstance = UMaterialInstanceDynamic::Create(PostProcessMaterialBase, this);
+		FogMaterialInstance = UMaterialInstanceDynamic::Create(PostProcessMaterial, this);
 
 		// 2. Сразу передаем нашу текстуру в параметр "FogMask" (имя из шейдера)
 		FogMaterialInstance->SetTextureParameterValue(FName("FogMask"), FogTexture);
