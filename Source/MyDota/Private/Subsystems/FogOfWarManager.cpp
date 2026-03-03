@@ -163,11 +163,11 @@ void AFogOfWarManager::BakeLevelData()
 			{
 				// 1. Записываем высоту (делим на шаг высоты Dota, например, 128 юнитов)
 				// Это превратит 0, 128, 256 в уровни 0, 1, 2
-				TerrainHeights[Index] = FMath::Clamp(FMath::FloorToInt(Hit.Location.Z / 128.f), 0, 255);
+				TerrainHeights[Index] = FMath::Clamp(FMath::FloorToInt(Hit.Location.Z / TerrainHeightLevel), 0, 255);
 
 				// 2. Проверяем, является ли объект препятствием
 				// Можно проверять по Tag или по Actor Class (например, деревья)
-				if (Hit.GetActor() && Hit.GetActor()->ActorHasTag("BlockFog"))
+				if (Hit.GetActor() && Hit.GetActor()->ActorHasTag(*StaticObstacleTag))
 				{
 					StaticObstacles[Index] = true;
 				}
@@ -302,7 +302,7 @@ void AFogOfWarManager::StartFogOfWar()
 {
 	if (HasAuthority())
 	{
-		GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &AFogOfWarManager::CalculateFogOfWar, 0.1f, true);
+		GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &AFogOfWarManager::CalculateFogOfWar, FogUpdateTick, true);
 	}
 }
 

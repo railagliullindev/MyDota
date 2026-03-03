@@ -27,7 +27,7 @@ public:
 
 	void InitFogManager();
 
-	UPROPERTY(BlueprintReadOnly, Category = "Fog | Teams")
+	UPROPERTY()
 	EMDTeam AssignedTeamID;
 
 	/** Размер одной ячейки в юнитах UE */
@@ -79,8 +79,14 @@ private:
 	/** Массив высот */
 	TArray<uint8> TerrainHeights;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Fog Settings|Server")
+	float TerrainHeightLevel = 128.f;
+
 	/** Массив статических препятсвий */
 	TArray<bool> StaticObstacles;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Fog Settings")
+	FString StaticObstacleTag = "BlockFog";
 
 	/** Массив для репликации (Биты) */
 	UPROPERTY(ReplicatedUsing = OnRep_CompressedFog)
@@ -116,6 +122,10 @@ private:
 
 	FTimerHandle TimerHandle;
 
+	/** Тик обновления тумана войны на сервере */
+	UPROPERTY(EditDefaultsOnly, Category = "Fog Settings|Server")
+	float FogUpdateTick = 0.1f;
+
 	/** Получить ячейку по из мировых координат */
 	FIntPoint WorldToGrid(FVector Location) const;
 
@@ -134,7 +144,7 @@ private:
 	/** Целевое состояние от сервера (распакованное из битов) */
 	TArray<float> TargetFogGoal;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Fog Settings | Client")
+	UPROPERTY(EditDefaultsOnly, Category = "Fog Settings|Client")
 	float FogFadeSpeed = 3.0f;
 
 	bool bInitialized = false;
