@@ -35,6 +35,15 @@ void AMD_PlayerController::GetLifetimeReplicatedProps(TArray<class FLifetimeProp
 	DOREPLIFETIME(AMD_PlayerController, Hero);
 }
 
+EMDTeam AMD_PlayerController::GetTeam() const
+{
+	if (AMD_PlayerState* PS = GetPlayerState<AMD_PlayerState>())
+	{
+		return PS->GetTeam();
+	}
+	return EMDTeam::None;
+}
+
 void AMD_PlayerController::SelectHero(TSubclassOf<AMD_CharacterBase> InHeroClass)
 {
 	if (AMD_PlayerState* PS = GetPlayerState<AMD_PlayerState>())

@@ -55,3 +55,12 @@ struct FVisionSource
 	UPROPERTY()
 	int32 TeamID;
 };
+
+UENUM(BlueprintType)
+enum class EMDTeam : uint8
+{
+	None,
+	Dire,
+	Radiant,
+	Neutral
+};

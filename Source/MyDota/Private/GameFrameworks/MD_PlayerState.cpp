@@ -45,12 +45,20 @@ UMD_AttributeSet* AMD_PlayerState::GetAttributeSet() const
 	return AttributeSet;
 }
 
+void AMD_PlayerState::OnRep_Team()
+{
+}
+
+EMDTeam AMD_PlayerState::GetTeam() const
+{
+	return Team;
+}
+
 void AMD_PlayerState::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(AMD_PlayerState, SelectedHeroClass);
-	DOREPLIFETIME(AMD_PlayerState, bIsTeamA);
 }
 
 bool AMD_PlayerState::Server_SetSelectedHero_Validate(TSubclassOf<AMD_CharacterBase> InHeroClass)

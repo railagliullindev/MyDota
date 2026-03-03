@@ -6,6 +6,7 @@
 #include "GameFramework/GameMode.h"
 #include "MD_GameMode.generated.h"
 
+class AFogOfWarManager;
 class AMD_GameState;
 class AMD_CharacterBase;
 
@@ -49,6 +50,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Classes")
 	TSubclassOf<APawn> CameraPawnClass;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Classes")
+	TSubclassOf<AFogOfWarManager> FogManagerClass;
+
 	EMathStage MatchStage;
 
 	UPROPERTY()
@@ -57,4 +61,9 @@ protected:
 private:
 
 	bool bIsTeamA;
+
+	UPROPERTY()
+	AFogOfWarManager* RadiantFogManager;
+	UPROPERTY()
+	AFogOfWarManager* DireFogManager;
 };

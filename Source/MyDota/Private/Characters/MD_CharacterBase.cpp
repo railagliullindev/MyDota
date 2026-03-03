@@ -74,12 +74,30 @@ void AMD_CharacterBase::BeginPlay()
 	Super::BeginPlay();
 
 	InitHealthBar();
+}
+
+EMDTeam AMD_CharacterBase::GetTeam() const
+{
+	UE_LOG(LogTemp, Warning, TEXT("GetTeam As PS valid? = %s"), PS ? TEXT("True") : TEXT("False"));
+	return PS ? PS->GetTeam() : EMDTeam::None;
+}
+
+FGenericTeamId AMD_CharacterBase::GetGenericTeamId() const
+{
+	return FGenericTeamId((uint8)GetTeam());
+}
+
+void AMD_CharacterBase::SetPlayerState(AMD_PlayerState* InPs)
+{
+	PS = InPs;
+
+	InitAbilitySystem();
 
 	// Проверяем, что мы на сервере (HasAuthority)
 	// или это не клиентская копия в мультиплеере
 	if (HasAuthority())
 	{
-		AFogOfWarManager* FogManager = AFogOfWarManager::Get(this);
+		AFogOfWarManager* FogManager = AFogOfWarManager::Get(this, (uint8)GetTeam());
 		if (FogManager)
 		{
 			// Регистрируем юнит как источник обзора
@@ -91,13 +109,6 @@ void AMD_CharacterBase::BeginPlay()
 			UE_LOG(LogTemp, Error, TEXT("Server: FogManager NOT FOUND during BeginPlay!"));
 		}
 	}
-}
-
-void AMD_CharacterBase::SetPlayerState(AMD_PlayerState* InPs)
-{
-	PS = InPs;
-
-	InitAbilitySystem();
 }
 
 void AMD_CharacterBase::InitAbilitySystem()

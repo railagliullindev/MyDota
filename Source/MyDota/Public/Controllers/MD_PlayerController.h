@@ -6,6 +6,7 @@
 #include "GameFramework/PlayerController.h"
 #include "GenericTeamAgentInterface.h"
 #include "GameModes/MD_GameMode.h"
+#include "Interfaces/MDTeamInterface.h"
 #include "MD_PlayerController.generated.h"
 
 class AMD_CharacterBase;
@@ -17,7 +18,7 @@ struct FInputActionValue;
  *
  */
 UCLASS()
-class MYDOTA_API AMD_PlayerController : public APlayerController, public IGenericTeamAgentInterface
+class MYDOTA_API AMD_PlayerController : public APlayerController, public IGenericTeamAgentInterface, public IMDTeamInterface
 {
 	GENERATED_BODY()
 
@@ -30,6 +31,7 @@ public:
 	//~ End IGenericTeamAgentInterface Interface
 
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual EMDTeam GetTeam() const override;
 
 	UFUNCTION(BlueprintCallable, Category = "Draft")
 	void SelectHero(TSubclassOf<AMD_CharacterBase> InHeroClass);

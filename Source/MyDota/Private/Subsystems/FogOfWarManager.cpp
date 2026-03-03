@@ -3,37 +3,53 @@
 #include "Subsystems/FogOfWarManager.h"
 
 #include "EngineUtils.h"
+#include "Interfaces/MDTeamInterface.h"
 #include "MyDota/MyDota.h"
 #include "Net/UnrealNetwork.h"
 
 AFogOfWarManager::AFogOfWarManager()
 {
-	PrimaryActorTick.bCanEverTick = true;
 	bReplicates = true;
-	bAlwaysRelevant = true;
+	bAlwaysRelevant = true; // Важно! Теперь релевантность считаем сами
+	// SetNetUpdateFrequency(10.f);
+	NetPriority = 3.0f;
+}
+
+AFogOfWarManager* AFogOfWarManager::Get(const UObject* WorldContextObject, uint8 TeamID)
+{
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
+	if (!World) return nullptr;
+
+	for (TActorIterator<AFogOfWarManager> It(World); It; ++It)
+	{
+		// На сервере ищем менеджер конкретной команды
+		// На клиенте AssignedTeamID совпадет только у "своего" менеджера (благодаря IsNetRelevantFor)
+		if ((uint8)It->AssignedTeamID == TeamID || TeamID == -1)
+		{
+			return *It;
+		}
+	}
+	return nullptr;
 }
 
 void AFogOfWarManager::BeginPlay()
 {
 	Super::BeginPlay();
-	Instance = this;
 
 	InitFogManager();
-
-	if (HasAuthority())
-	{
-		GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &AFogOfWarManager::CalculateFogOfWar, 0.1f, true);
-	}
 }
 
 void AFogOfWarManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	if (Instance == this) Instance = nullptr;
 	Super::EndPlay(EndPlayReason);
 }
 
 void AFogOfWarManager::OnRep_CompressedFog()
 {
+	if (!bInitialized) return;
+
+	if (MapSize.X <= 0 || MapSize.Y <= 0) return;
+
 	PixelBuffer[0] = FColor::Red;
 
 	// Для проверки: работает ли связка AFogOfWarManager -> Шейдер
@@ -55,8 +71,6 @@ void AFogOfWarManager::OnRep_CompressedFog()
 
 	UpdateTexture();
 }
-
-AFogOfWarManager* AFogOfWarManager::Instance = nullptr;
 
 void AFogOfWarManager::TraceLine(FIntPoint Start, FIntPoint End, int32 MaxRange, uint8 ViewerHeight)
 {
@@ -110,17 +124,6 @@ void AFogOfWarManager::UpdateTexture()
 	const auto DataPtr = PixelBuffer.GetData();
 
 	FogTexture->UpdateTextureRegions(0, 1, RegionData, MapSize.X * 4, 4, (uint8*)DataPtr);
-}
-
-FIntPoint AFogOfWarManager::WorldToGrid(FVector Location)
-{
-	int32 GridX = FMath::FloorToInt(Location.X / GridCellSize) + (MapSize.X / 2);
-	int32 GridY = FMath::FloorToInt(Location.Y / GridCellSize) + (MapSize.Y / 2);
-
-	GridX = FMath::Clamp(GridX, 0, MapSize.X - 1);
-	GridY = FMath::Clamp(GridY, 0, MapSize.Y - 1);
-
-	return FIntPoint(GridX, GridY);
 }
 
 void AFogOfWarManager::BakeLevelData()
@@ -186,6 +189,17 @@ uint8 AFogOfWarManager::GetTerrainHeight(FIntPoint GridCoords) const
 	return 0;
 }
 
+FIntPoint AFogOfWarManager::WorldToGrid(FVector Location) const
+{
+	int32 GridX = FMath::FloorToInt(Location.X / GridCellSize) + (MapSize.X / 2);
+	int32 GridY = FMath::FloorToInt(Location.Y / GridCellSize) + (MapSize.Y / 2);
+
+	GridX = FMath::Clamp(GridX, 0, MapSize.X - 1);
+	GridY = FMath::Clamp(GridY, 0, MapSize.Y - 1);
+
+	return FIntPoint(GridX, GridY);
+}
+
 FVector AFogOfWarManager::GridToWorld(FIntPoint GridCoords) const
 {
 	FVector WorldPos;
@@ -197,13 +211,11 @@ FVector AFogOfWarManager::GridToWorld(FIntPoint GridCoords) const
 
 bool AFogOfWarManager::IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const
 {
-	// Получаем команду игрока, который запрашивает данные
-	// IMyTeamInterface* ViewerTeam = Cast<IMyTeamInterface>(RealViewer);
-	// return ViewerTeam && ViewerTeam->GetTeam() == this->AssignedTeam;
-
-	return Super::IsNetRelevantFor(RealViewer, ViewTarget, SrcLocation);
-
-	// return false;
+	if (const IMDTeamInterface* ViewerTeam = Cast<IMDTeamInterface>(RealViewer))
+	{
+		return ViewerTeam->GetTeam() == this->AssignedTeamID;
+	}
+	return false;
 }
 
 void AFogOfWarManager::CalculateFogOfWar()
@@ -286,17 +298,20 @@ void AFogOfWarManager::RegisterSource(AActor* InActor, float InRadius)
 	}
 }
 
-AFogOfWarManager* AFogOfWarManager::Get(const UObject* WorldContextObject)
+void AFogOfWarManager::StartFogOfWar()
 {
-	const UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
-	if (!World) return nullptr;
-
-	for (TActorIterator<AFogOfWarManager> It(World); It; ++It)
+	if (HasAuthority())
 	{
-		return *It; // Возвращаем первого найденного актора на этой сцене
+		GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &AFogOfWarManager::CalculateFogOfWar, 0.1f, true);
 	}
+}
 
-	return nullptr;
+void AFogOfWarManager::EndFogOfWar()
+{
+	if (HasAuthority())
+	{
+		GetWorld()->GetTimerManager().ClearTimer(TimerHandle);
+	}
 }
 
 void AFogOfWarManager::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -355,6 +370,7 @@ void AFogOfWarManager::InitFogManager()
 	}
 
 	UE_LOG(LogFogOfWar, Log, TEXT("FogManager [%s]: Initialization Complete."), *RoleString);
+	bInitialized = true;
 }
 
 void AFogOfWarManager::InitTexture()

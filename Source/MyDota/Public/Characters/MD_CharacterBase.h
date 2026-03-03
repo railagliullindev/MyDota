@@ -6,6 +6,8 @@
 #include "GameFramework/Character.h"
 #include "AbilitySystemInterface.h"
 #include "GameplayEffectTypes.h"
+#include "GenericTeamAgentInterface.h"
+#include "Interfaces/MDTeamInterface.h"
 #include "MD_CharacterBase.generated.h"
 
 class UGameplayEffect;
@@ -19,7 +21,7 @@ class UMD_AttributeSet;
 class UMD_AbilitySystemComponent;
 
 UCLASS()
-class MYDOTA_API AMD_CharacterBase : public ACharacter, public IAbilitySystemInterface
+class MYDOTA_API AMD_CharacterBase : public ACharacter, public IAbilitySystemInterface, public IMDTeamInterface, public IGenericTeamAgentInterface
 {
 	GENERATED_BODY()
 
@@ -29,6 +31,9 @@ public:
 
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 	virtual void BeginPlay() override;
+
+	virtual EMDTeam GetTeam() const override;
+	virtual FGenericTeamId GetGenericTeamId() const override;
 
 	void SetPlayerState(AMD_PlayerState* InPs);
 

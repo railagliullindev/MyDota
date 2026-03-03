@@ -4,7 +4,9 @@
 
 #include "CoreMinimal.h"
 #include "AbilitySystemInterface.h"
+#include "MyDotaStructTypes.h"
 #include "GameFramework/PlayerState.h"
+#include "Interfaces/MDTeamInterface.h"
 #include "MD_PlayerState.generated.h"
 
 class UMD_AbilitySystemComponent;
@@ -14,7 +16,7 @@ class AMD_CharacterBase;
  *
  */
 UCLASS()
-class MYDOTA_API AMD_PlayerState : public APlayerState, public IAbilitySystemInterface
+class MYDOTA_API AMD_PlayerState : public APlayerState, public IAbilitySystemInterface, public IMDTeamInterface
 {
 	GENERATED_BODY()
 
@@ -23,18 +25,24 @@ public:
 	AMD_PlayerState();
 
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
-	UMD_AttributeSet* GetAttributeSet() const;
 
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+
+	UMD_AttributeSet* GetAttributeSet() const;
 
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Draft")
 	TSubclassOf<AMD_CharacterBase> SelectedHeroClass;
 
-	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Draft")
-	bool bIsTeamA;
-
 	UFUNCTION(Server, Reliable, WithValidation)
 	void Server_SetSelectedHero(TSubclassOf<AMD_CharacterBase> InHeroClass);
+
+	UPROPERTY(ReplicatedUsing = OnRep_Team, BlueprintReadOnly, Category = "Team")
+	EMDTeam Team = EMDTeam::None;
+
+	UFUNCTION()
+	void OnRep_Team();
+
+	virtual EMDTeam GetTeam() const override;
 
 protected:
 

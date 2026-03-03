@@ -6,6 +6,7 @@
 #include "Controllers/MD_PlayerController.h"
 #include "GameFrameworks/MD_GameState.h"
 #include "GameFrameworks/MD_PlayerState.h"
+#include "Subsystems/FogOfWarManager.h"
 
 AMD_GameMode::AMD_GameMode()
 {
@@ -23,6 +24,14 @@ void AMD_GameMode::BeginPlay()
 	checkf(MD_GameState, TEXT("Game state is not AMD_GameState"));
 
 	SetMatchStage(EMathStage::WaitingForPlayers);
+
+	// Спавним менеджер для Radiant
+	RadiantFogManager = GetWorld()->SpawnActor<AFogOfWarManager>(FogManagerClass, FVector::ZeroVector, FRotator::ZeroRotator);
+	if (RadiantFogManager) RadiantFogManager->AssignedTeamID = EMDTeam::Radiant;
+
+	// Спавним менеджер для Dire
+	DireFogManager = GetWorld()->SpawnActor<AFogOfWarManager>(FogManagerClass, FVector::ZeroVector, FRotator::ZeroRotator);
+	if (DireFogManager) DireFogManager->AssignedTeamID = EMDTeam::Dire;
 }
 
 void AMD_GameMode::PostLogin(APlayerController* NewPlayer)
@@ -36,8 +45,7 @@ void AMD_GameMode::PostLogin(APlayerController* NewPlayer)
 	AMD_PlayerState* PS = NewPlayer->GetPlayerState<AMD_PlayerState>();
 	if (PS)
 	{
-		PS->bIsTeamA = bIsTeamA;
-		bIsTeamA = !bIsTeamA;
+		PS->Team = (GetNumPlayers() % 2 == 0) ? EMDTeam::Radiant : EMDTeam::Dire;
 	}
 
 	SpawnCameraForPlayer(NewPlayer);
@@ -94,6 +102,9 @@ void AMD_GameMode::PreGame()
 
 void AMD_GameMode::InProgress()
 {
+	RadiantFogManager->StartFogOfWar();
+	DireFogManager->StartFogOfWar();
+
 	// Проходим по всем контроллерам в матче
 	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
 	{

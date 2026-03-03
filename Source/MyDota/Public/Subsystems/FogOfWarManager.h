@@ -19,11 +19,14 @@ public:
 
 	AFogOfWarManager();
 
-	static AFogOfWarManager* Get(const UObject* WorldContextObject);
+	static AFogOfWarManager* Get(const UObject* WorldContextObject, uint8 TeamID = -1);
 
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
 	void InitFogManager();
+
+	UPROPERTY(BlueprintReadOnly, Category = "Fog | Teams")
+	EMDTeam AssignedTeamID;
 
 	/** Размер одной ячейки в юнитах UE */
 	UPROPERTY(EditDefaultsOnly, Category = "Fog Settings")
@@ -38,6 +41,9 @@ public:
 
 	/** Регистрация в сети */
 	void RegisterSource(AActor* InActor, float InRadius);
+
+	void StartFogOfWar();
+	void EndFogOfWar();
 
 protected:
 
@@ -56,9 +62,6 @@ private:
 
 	/** Чтобы клиент Radiant не получал данные тумана Dire, переопредели проверку релевантности */
 	virtual bool IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const override;
-
-	/** Для реализации Singleton */
-	static AFogOfWarManager* Instance;
 
 	/** Материал тумана войны (Post Process) */
 	UPROPERTY(EditDefaultsOnly, Category = "Fog Settings")
@@ -112,7 +115,7 @@ private:
 	FTimerHandle TimerHandle;
 
 	/** Получить ячейку по из мировых координат */
-	FIntPoint WorldToGrid(FVector Location);
+	FIntPoint WorldToGrid(FVector Location) const;
 
 	/** Получить мировые координаты из ячейки */
 	FVector GridToWorld(FIntPoint GridCoords) const;
@@ -122,4 +125,6 @@ private:
 
 	/** Получить высоту ячейки */
 	uint8 GetTerrainHeight(FIntPoint GridCoords) const;
+
+	bool bInitialized = false;
 };
