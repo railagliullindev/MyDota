@@ -54,6 +54,13 @@ struct FVisionSource
 
 	UPROPERTY()
 	int32 TeamID;
+
+	FVisionSource()
+		: SourceActor(nullptr)
+		, Radius(0.0f)
+		, TeamID(0)
+	{
+	}
 };
 
 UENUM(BlueprintType)

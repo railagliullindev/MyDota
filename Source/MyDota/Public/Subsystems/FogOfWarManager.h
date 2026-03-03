@@ -23,6 +23,8 @@ public:
 
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
+	virtual void Tick(float DeltaSeconds) override;
+
 	void InitFogManager();
 
 	UPROPERTY(BlueprintReadOnly, Category = "Fog | Teams")
@@ -125,6 +127,15 @@ private:
 
 	/** Получить высоту ячейки */
 	uint8 GetTerrainHeight(FIntPoint GridCoords) const;
+
+	/** Текущее состояние яркости (0.0f - 1.0f) для каждого пикселя */
+	TArray<float> CurrentInterpolatedFog;
+
+	/** Целевое состояние от сервера (распакованное из битов) */
+	TArray<float> TargetFogGoal;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Fog Settings | Client")
+	float FogFadeSpeed = 3.0f;
 
 	bool bInitialized = false;
 };

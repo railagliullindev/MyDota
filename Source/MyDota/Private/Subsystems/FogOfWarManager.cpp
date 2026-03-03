@@ -9,9 +9,10 @@
 
 AFogOfWarManager::AFogOfWarManager()
 {
+	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bStartWithTickEnabled = true;
 	bReplicates = true;
 	bAlwaysRelevant = true; // Важно! Теперь релевантность считаем сами
-	// SetNetUpdateFrequency(10.f);
 	NetPriority = 3.0f;
 }
 
@@ -48,8 +49,6 @@ void AFogOfWarManager::OnRep_CompressedFog()
 {
 	if (!bInitialized) return;
 
-	if (MapSize.X <= 0 || MapSize.Y <= 0) return;
-
 	PixelBuffer[0] = FColor::Red;
 
 	// Для проверки: работает ли связка AFogOfWarManager -> Шейдер
@@ -67,6 +66,7 @@ void AFogOfWarManager::OnRep_CompressedFog()
 		// Для плавности можно делать Lerp между старым цветом и новым,
 		// но для начала просто записываем:
 		PixelBuffer[i] = TargetColor;
+		TargetFogGoal[i] = bIsVisible ? 1.f : 0.5f;
 	}
 
 	UpdateTexture();
@@ -323,6 +323,35 @@ void AFogOfWarManager::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty
 	DOREPLIFETIME_CONDITION(AFogOfWarManager, CompressedFogData, COND_SkipOwner);
 }
 
+void AFogOfWarManager::Tick(float DeltaSeconds)
+{
+	if (!HasAuthority())
+	{
+		bool bNeedsTextureUpdate = false;
+
+		for (int32 i = 0; i < CurrentInterpolatedFog.Num(); ++i)
+		{
+			float OldVal = CurrentInterpolatedFog[i];
+
+			// Плавно движемся к цели
+			CurrentInterpolatedFog[i] = FMath::FInterpTo(OldVal, TargetFogGoal[i], DeltaSeconds, FogFadeSpeed);
+
+			// Если значение заметно изменилось, обновляем пиксель
+			if (!FMath::IsNearlyEqual(OldVal, CurrentInterpolatedFog[i], 0.01f))
+			{
+				uint8 Brightness = FMath::RoundToInt(CurrentInterpolatedFog[i] * 255.0f);
+				PixelBuffer[i] = FColor(Brightness, Brightness, Brightness, 255);
+				bNeedsTextureUpdate = true;
+			}
+		}
+
+		if (bNeedsTextureUpdate)
+		{
+			UpdateTexture();
+		}
+	}
+}
+
 void AFogOfWarManager::InitFogManager()
 {
 	const FString RoleString = HasAuthority() ? "Server" : "Client";
@@ -343,6 +372,12 @@ void AFogOfWarManager::InitFogManager()
 
 	StaticObstacles.Empty();
 	StaticObstacles.SetNumZeroed(TotalCells);
+
+	CurrentInterpolatedFog.Empty();
+	CurrentInterpolatedFog.SetNumZeroed(TotalCells);
+
+	TargetFogGoal.Empty();
+	TargetFogGoal.SetNumZeroed(TotalCells);
 
 	// 3. Инициализация серверных данных
 	if (HasAuthority()) // Только на сервере
