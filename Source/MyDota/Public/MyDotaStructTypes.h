@@ -8,13 +8,13 @@ USTRUCT(BlueprintType)
 struct FMDHeroAbilitySet
 {
 	GENERATED_BODY()
-	
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (Categories = "InputTag"))
 	FGameplayTag InputTag;
-	
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TSubclassOf<UGameplayAbility> AbilityToGrant;
-	
+
 	bool IsValid() const
 	{
 		return InputTag.IsValid() && AbilityToGrant;
@@ -41,16 +41,17 @@ struct FFogBitData
 
 // массив структур для всех источников обзора
 USTRUCT(BlueprintType)
-struct FVisionSource {
-	
+struct FVisionSource
+{
+
 	GENERATED_BODY()
-	
+
 	UPROPERTY()
 	AActor* SourceActor;
-	
+
 	UPROPERTY()
 	float Radius;
-	
+
 	UPROPERTY()
 	int32 TeamID;
 };

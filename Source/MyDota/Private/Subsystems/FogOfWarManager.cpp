@@ -1,6 +1,5 @@
 // Rail Agliullin Dev. All Rights Reserved
 
-
 #include "Subsystems/FogOfWarManager.h"
 
 #include "EngineUtils.h"
@@ -17,9 +16,9 @@ void AFogOfWarManager::BeginPlay()
 {
 	Super::BeginPlay();
 	Instance = this; // Регистрируем себя при спавне
-	
+
 	InitFogManager();
-	
+
 	if (HasAuthority())
 	{
 		GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &AFogOfWarManager::CheckAllFogOfWar, 0.1f, true);
@@ -35,10 +34,10 @@ void AFogOfWarManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
 void AFogOfWarManager::OnRep_CompressedFog()
 {
 	PixelBuffer[0] = FColor::Red;
-	
+
 	// Проверка
 	// for(auto& Color : PixelBuffer) Color = FColor::Red;
-	
+
 	for (int32 i = 0; i < PixelBuffer.Num(); ++i)
 	{
 		int32 WordIndex = i / 32;
@@ -47,8 +46,8 @@ void AFogOfWarManager::OnRep_CompressedFog()
 
 		// Текущее состояние в буфере
 		FColor TargetColor = bIsVisible ? FColor::White : FColor(127, 127, 127, 255);
-        
-		// Для плавности можно делать Lerp между старым цветом и новым, 
+
+		// Для плавности можно делать Lerp между старым цветом и новым,
 		// но для начала просто записываем:
 		PixelBuffer[i] = TargetColor;
 	}
@@ -75,7 +74,7 @@ void AFogOfWarManager::TraceLine(FIntPoint Start, FIntPoint End, int32 MaxRange,
 	for (; n > 0; --n)
 	{
 		int32 Index = x + y * MapSize.X;
-        
+
 		// Проверка на препятствие (дерево или стена)
 		if (StaticObstacles[Index]) break;
 
@@ -83,12 +82,15 @@ void AFogOfWarManager::TraceLine(FIntPoint Start, FIntPoint End, int32 MaxRange,
 		if (TerrainHeights[Index] > ViewerHeight) break;
 
 		// Помечаем ячейку как видимую
-		RawVisibilityData[Index] = 255; 
+		RawVisibilityData[Index] = 255;
 
-		if (error > 0) {
+		if (error > 0)
+		{
 			x += x_inc;
 			error -= dy;
-		} else {
+		}
+		else
+		{
 			y += y_inc;
 			error += dx;
 		}
@@ -105,7 +107,7 @@ void AFogOfWarManager::UpdateTexture()
 	// Быстрая заливка буфера в видеопамять
 	auto RegionData = TextureRegion;
 	auto DataPtr = PixelBuffer.GetData();
-    
+
 	FogTexture->UpdateTextureRegions(0, 1, RegionData, MapSize.X * 4, 4, (uint8*)DataPtr);
 }
 
@@ -127,15 +129,16 @@ FIntPoint AFogOfWarManager::WorldToGrid(FVector Location)
 void AFogOfWarManager::BakeLevelData()
 {
 	int32 TotalCells = MapSize.X * MapSize.Y;
-	
-	if (TotalCells <= 0) {
+
+	if (TotalCells <= 0)
+	{
 		UE_LOG(LogTemp, Error, TEXT("MapSize is Zero! Check your Blueprint/Editor settings."));
 		return;
 	}
-	
+
 	// Инициализируем наш "черновик"
 	RawVisibilityData.SetNumZeroed(TotalCells);
-	
+
 	// Инициализируем другие массивы
 	TerrainHeights.SetNumUninitialized(TotalCells);
 	StaticObstacles.SetNumUninitialized(TotalCells);
@@ -148,11 +151,11 @@ void AFogOfWarManager::BakeLevelData()
 		for (int32 x = 0; x < MapSize.X; x++)
 		{
 			int32 Index = x + y * MapSize.X;
-            
+
 			// Переводим координаты сетки в мировые координаты
 			FVector CellWorldPos = GridToWorld(FIntPoint(x, y));
 			FVector RayStart = CellWorldPos + FVector(0, 0, 2000.f); // С неба
-			FVector RayEnd = CellWorldPos - FVector(0, 0, 2000.f);   // В пол
+			FVector RayEnd = CellWorldPos - FVector(0, 0, 2000.f);	 // В пол
 
 			FHitResult Hit;
 			// Трейсим, чтобы найти землю (Landscape) и объекты (Trees/Walls)
@@ -164,9 +167,12 @@ void AFogOfWarManager::BakeLevelData()
 
 				// 2. Проверяем, является ли объект препятствием
 				// Можно проверять по Tag или по Actor Class (например, деревья)
-				if (Hit.GetActor() && Hit.GetActor()->ActorHasTag("BlockFog")) {
+				if (Hit.GetActor() && Hit.GetActor()->ActorHasTag("BlockFog"))
+				{
 					StaticObstacles[Index] = true;
-				} else {
+				}
+				else
+				{
 					StaticObstacles[Index] = false;
 				}
 			}
@@ -192,19 +198,16 @@ FVector AFogOfWarManager::GridToWorld(FIntPoint GridCoords) const
 	return WorldPos + GetActorLocation();
 }
 
-bool AFogOfWarManager::IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget,
-	const FVector& SrcLocation) const
+bool AFogOfWarManager::IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const
 {
 	// Получаем команду игрока, который запрашивает данные
-	//IMyTeamInterface* ViewerTeam = Cast<IMyTeamInterface>(RealViewer);
-	//return ViewerTeam && ViewerTeam->GetTeam() == this->AssignedTeam;
-	
+	// IMyTeamInterface* ViewerTeam = Cast<IMyTeamInterface>(RealViewer);
+	// return ViewerTeam && ViewerTeam->GetTeam() == this->AssignedTeam;
+
 	return Super::IsNetRelevantFor(RealViewer, ViewTarget, SrcLocation);
-	
-	//return false;
+
+	// return false;
 }
-
-
 
 void AFogOfWarManager::CheckAllFogOfWar()
 {
@@ -217,12 +220,11 @@ void AFogOfWarManager::CheckAllFogOfWar()
 	{
 		if (RawVisibilityData[i] == 255)
 		{
-			RawVisibilityData[i] = 127; 
+			RawVisibilityData[i] = 127;
 		}
 	}
 
-	
-	FString Who = HasAuthority() ? "Server" : "Client"; 
+	FString Who = HasAuthority() ? "Server" : "Client";
 	UE_LOG(LogTemp, Warning, TEXT("Fog [%s] : Sources Count = %d"), *Who, ActiveVisionSources.Num());
 	// 3. Обновление обзора от всех живых источников
 	// Допустим, у тебя есть список зарегистрированных юнитов
@@ -241,16 +243,14 @@ void AFogOfWarManager::CheckAllFogOfWar()
 	{
 		int32 WordIndex = i / 32;
 		int32 BitIndex = i % 32;
-        
+
 		bool bIsVisible = (RawVisibilityData[i] == 255);
-        
-		if (bIsVisible) 
-			CompressedFogData[WordIndex] |= (1 << BitIndex);
-		else 
-			CompressedFogData[WordIndex] &= ~(1 << BitIndex);
+
+		if (bIsVisible) CompressedFogData[WordIndex] |= (1 << BitIndex);
+		else CompressedFogData[WordIndex] &= ~(1 << BitIndex);
 	}
 
-	// ВАЖНО: Принудительно помечаем массив для репликации, 
+	// ВАЖНО: Принудительно помечаем массив для репликации,
 	// так как TArray внутри не всегда триггерит репликацию при изменении элементов
 	MARK_PROPERTY_DIRTY_FROM_NAME(AFogOfWarManager, CompressedFogData, this);
 }
@@ -268,27 +268,29 @@ void AFogOfWarManager::UpdateLineOfSight(FVector Origin, float Radius)
 	int32 MaxY = FMath::Min(MapSize.Y - 1, Center.Y + RadiusInCells);
 
 	// 2. Итерируем по периметру круга и пускаем лучи
-	for (int32 x = MinX; x <= MaxX; x++) {
+	for (int32 x = MinX; x <= MaxX; x++)
+	{
 		TraceLine(Center, FIntPoint(x, MinY), RadiusInCells, ViewerHeight);
 		TraceLine(Center, FIntPoint(x, MaxY), RadiusInCells, ViewerHeight);
 	}
-	for (int32 y = MinY; y <= MaxY; y++) {
+	for (int32 y = MinY; y <= MaxY; y++)
+	{
 		TraceLine(Center, FIntPoint(MinX, y), RadiusInCells, ViewerHeight);
 		TraceLine(Center, FIntPoint(MaxX, y), RadiusInCells, ViewerHeight);
 	}
 }
 
 void AFogOfWarManager::RegisterSource(AActor* InActor, float InRadius)
-{	
+{
 	UE_LOG(LogTemp, Warning, TEXT("RegisterSource"));
-	
+
 	if (InActor)
 	{
 		FVisionSource NewSource;
 		NewSource.SourceActor = InActor;
 		NewSource.Radius = InRadius;
 		ActiveVisionSources.Add(NewSource);
-		
+
 		UE_LOG(LogTemp, Log, TEXT("FogManager: New source added! Total sources: %d"), ActiveVisionSources.Num());
 	}
 }
@@ -297,20 +299,20 @@ AFogOfWarManager* AFogOfWarManager::Get(const UObject* WorldContextObject)
 {
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
 	if (!World) return nullptr;
-	
+
 	for (TActorIterator<AFogOfWarManager> It(World); It; ++It)
 	{
 		return *It; // Возвращаем первого найденного актора на этой сцене
 	}
-	
+
 	return nullptr;
 }
 
 void AFogOfWarManager::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	
-	// Реплицируем только владельцу (команде). 
+
+	// Реплицируем только владельцу (команде).
 	// В Dota сервер знает всё, а клиент — только свой туман.
 	DOREPLIFETIME_CONDITION(AFogOfWarManager, CompressedFogData, COND_SkipOwner);
 }
@@ -344,7 +346,7 @@ void AFogOfWarManager::InitFogManager()
 		int32 BitArraySize = FMath::DivideAndRoundUp(TotalCells, 32);
 		CompressedFogData.Empty();
 		CompressedFogData.SetNumZeroed(BitArraySize);
-        
+
 		// Теперь вызываем запекание ландшафта (рейкасты)
 		BakeLevelData();
 	}
@@ -356,7 +358,7 @@ void AFogOfWarManager::InitFogManager()
 		PixelBuffer.SetNumUninitialized(TotalCells);
 
 		// Здесь же вызываем создание текстуры
-		InitTexture(); 
+		InitTexture();
 	}
 
 	UE_LOG(LogTemp, Log, TEXT("FogManager: Initialization Complete."));
@@ -372,13 +374,12 @@ void AFogOfWarManager::InitTexture()
 
 	PixelBuffer.SetNumUninitialized(MapSize.X * MapSize.Y);
 	TextureRegion = new FUpdateTextureRegion2D(0, 0, 0, 0, MapSize.X, MapSize.Y);
-	
-	
+
 	if (PostProcessMaterialBase)
 	{
 		// 1. Создаем динамический экземпляр
 		FogMaterialInstance = UMaterialInstanceDynamic::Create(PostProcessMaterialBase, this);
-    
+
 		// 2. Сразу передаем нашу текстуру в параметр "FogMask" (имя из шейдера)
 		FogMaterialInstance->SetTextureParameterValue(FName("FogMask"), FogTexture);
 
@@ -395,5 +396,3 @@ void AFogOfWarManager::InitTexture()
 		}
 	}
 }
-
-

@@ -8,20 +8,20 @@
 
 class UProgressBar;
 /**
- * 
+ *
  */
 UCLASS(Abstract, HideDropdown)
 class MYDOTA_API UMD_OverheadWidget : public UUserWidget
 {
 	GENERATED_BODY()
-	
+
 public:
-	
+
 	UPROPERTY(meta = (BindWidget))
 	UProgressBar* HealthBar;
-	
+
 	UPROPERTY(meta = (BindWidget))
 	UProgressBar* ManaBar;
-	
+
 	void UpdateStats(float HP, float MaxHP, float MP, float MaxMP);
 };

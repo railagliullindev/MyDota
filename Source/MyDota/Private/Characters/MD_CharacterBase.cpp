@@ -1,6 +1,5 @@
 // Rail Agliullin Dev. All Rights Reserved
 
-
 #include "Characters/MD_CharacterBase.h"
 
 #include "AbilitySystem/MD_AbilitySystemComponent.h"
@@ -20,7 +19,7 @@
 void AMD_CharacterBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	
+
 	DOREPLIFETIME(AMD_CharacterBase, PS)
 }
 
@@ -32,22 +31,21 @@ void AMD_CharacterBase::OnValueChanged(const FOnAttributeChangeData& Data)
 	}
 }
 
-
 AMD_CharacterBase::AMD_CharacterBase()
 {
 	bReplicates = true;
 	ACharacter::SetReplicateMovement(true);
-	
+
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
 
 	// Don't rotate character to camera direction
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationYaw = true;
 	bUseControllerRotationRoll = false;
-	
+
 	PrimaryActorTick.bCanEverTick = false;
 	PrimaryActorTick.bStartWithTickEnabled = false;
-	
+
 	// Configure character movement
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 	GetCharacterMovement()->bUseControllerDesiredRotation = true;
@@ -55,15 +53,14 @@ AMD_CharacterBase::AMD_CharacterBase()
 	GetCharacterMovement()->RotationRate = FRotator(0.f, 360.f, 0.f);
 	GetCharacterMovement()->bConstrainToPlane = true;
 	GetCharacterMovement()->bSnapToPlaneAtStart = true;
-	
-	
+
 	HealthBarComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("HealthBar"));
 	HealthBarComponent->SetWidgetClass(OverheadWidgetClass);
 	HealthBarComponent->SetupAttachment(RootComponent);
 	HealthBarComponent->SetWidgetSpace(EWidgetSpace::Screen);
 	HealthBarComponent->SetDrawAtDesiredSize(true);
 	HealthBarComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 100.0f));
-	
+
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 }
 
@@ -75,10 +72,10 @@ UAbilitySystemComponent* AMD_CharacterBase::GetAbilitySystemComponent() const
 void AMD_CharacterBase::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
 	InitHealthBar();
-	
-	// Проверяем, что мы на сервере (HasAuthority) 
+
+	// Проверяем, что мы на сервере (HasAuthority)
 	// или это не клиентская копия в мультиплеере
 	if (HasAuthority())
 	{
@@ -86,7 +83,7 @@ void AMD_CharacterBase::BeginPlay()
 		if (FogManager)
 		{
 			// Регистрируем юнит как источник обзора
-			FogManager->RegisterSource(this, 1200.0f); 
+			FogManager->RegisterSource(this, 1200.0f);
 			UE_LOG(LogTemp, Warning, TEXT("Server: Registered %s as Vision Source"), *GetName());
 		}
 		else
@@ -99,7 +96,7 @@ void AMD_CharacterBase::BeginPlay()
 void AMD_CharacterBase::SetPlayerState(AMD_PlayerState* InPs)
 {
 	PS = InPs;
-	
+
 	InitAbilitySystem();
 }
 
@@ -110,14 +107,12 @@ void AMD_CharacterBase::InitAbilitySystem()
 		// Аналогично инициализируем на клиент
 		ASC = Cast<UMD_AbilitySystemComponent>(PS->GetAbilitySystemComponent());
 		AS = PS->GetAttributeSet();
-		
+
 		// ВАЖНО: Owner — PlayerState, Avatar — Character (тело)
 		PS->GetAbilitySystemComponent()->InitAbilityActorInfo(PS, this);
-		
-		UE_LOG(LogMyDotaGAS, Log, TEXT("[%s] GAS инициализирован для %s через PlayerState"), 
-		   HasAuthority() ? TEXT("Server") : TEXT("Client"), *GetName());
-		
-		
+
+		UE_LOG(LogMyDotaGAS, Log, TEXT("[%s] GAS инициализирован для %s через PlayerState"), HasAuthority() ? TEXT("Server") : TEXT("Client"), *GetName());
+
 		if (!HasAuthority()) return;
 		if (!HeroStartupData.IsNull())
 		{
@@ -126,13 +121,11 @@ void AMD_CharacterBase::InitAbilitySystem()
 				LoadedData->GiveToAbilitySystemComponent(ASC);
 			}
 		}
-		
 	}
 }
 
-
 void AMD_CharacterBase::InitHealthBar()
-{		
+{
 	if (IsLocallyControlled() || GetNetMode() != NM_DedicatedServer)
 	{
 		if (ASC && AS)
@@ -144,8 +137,7 @@ void AMD_CharacterBase::InitHealthBar()
 	}
 }
 
-void AMD_CharacterBase::Multicast_SpawnProjectile_Implementation(TSubclassOf<AActor> ProjClass, FVector Loc,
-	FRotator Rot, AActor* Target)
+void AMD_CharacterBase::Multicast_SpawnProjectile_Implementation(TSubclassOf<AActor> ProjClass, FVector Loc, FRotator Rot, AActor* Target)
 {
 	// Этот код выполняется на СЕРВЕРЕ и на ВСЕХ КЛИЕНТАХ
 	if (!ProjClass || !Target) return;
@@ -155,7 +147,7 @@ void AMD_CharacterBase::Multicast_SpawnProjectile_Implementation(TSubclassOf<AAc
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
 	AMD_ProjectileBase* Projectile = GetWorld()->SpawnActor<AMD_ProjectileBase>(ProjClass, Loc, Rot, SpawnParams);
-    
+
 	if (Projectile && Projectile->ProjectileMovement)
 	{
 		// Привязываем цель для самонаведения (локально у каждого)
@@ -173,7 +165,7 @@ void AMD_CharacterBase::Multicast_SpawnProjectile_Implementation(TSubclassOf<AAc
 FGameplayEffectSpecHandle AMD_CharacterBase::MakeDamageSpec(TSubclassOf<UGameplayEffect> EffectClass, float Level)
 {
 	// 1. Проверяем наличие класса эффекта и ASC
-	if (!EffectClass || !ASC) 
+	if (!EffectClass || !ASC)
 	{
 		return FGameplayEffectSpecHandle();
 	}
@@ -181,7 +173,7 @@ FGameplayEffectSpecHandle AMD_CharacterBase::MakeDamageSpec(TSubclassOf<UGamepla
 	// 2. Создаем контекст (хранит информацию о том, КТО наносит урон)
 	FGameplayEffectContextHandle Context = ASC->MakeEffectContext();
 	Context.AddSourceObject(this);
-	//Context.AddInstigator(this, this);// AddByrefSourceActors(this, this); // Добавляем себя как источник
+	// Context.AddInstigator(this, this);// AddByrefSourceActors(this, this); // Добавляем себя как источник
 
 	// 3. ВЫЗЫВАЕМ МЕТОД У КОМПОНЕНТА (ASC)
 	// Именно здесь создается "пакет данных" об уроне
@@ -193,7 +185,7 @@ void AMD_CharacterBase::OnRep_PlayerState()
 {
 	if (!PS) return;
 	Super::OnRep_PlayerState();
-	
+
 	InitAbilitySystem();
 }
 
@@ -201,6 +193,5 @@ void AMD_CharacterBase::OnRep_Owner()
 {
 	Super::OnRep_Owner();
 	InitAbilitySystem();
-	//InitHealthBar();
+	// InitHealthBar();
 }
-

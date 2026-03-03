@@ -1,6 +1,5 @@
 // Rail Agliullin Dev. All Rights Reserved
 
-
 #include "Controllers/MD_PlayerController.h"
 
 #include "AIController.h"
@@ -32,7 +31,7 @@ FGenericTeamId AMD_PlayerController::GetGenericTeamId() const
 void AMD_PlayerController::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	
+
 	DOREPLIFETIME(AMD_PlayerController, Hero);
 }
 
@@ -50,7 +49,7 @@ void AMD_PlayerController::SetHero(AMD_CharacterBase* InHero)
 	if (HasAuthority())
 	{
 		Hero = InHero;
-		
+
 		OnRep_Hero();
 	}
 }
@@ -60,12 +59,11 @@ void AMD_PlayerController::OnRep_Hero()
 	if (IsLocalController())
 	{
 		FString RoleString = HasAuthority() ? TEXT("ListenServer-Host") : TEXT("Remote-Client");
-        
+
 		if (Hero)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("[%s] Герой успешно привязан к контроллеру: %s"), 
-				*RoleString, *Hero->GetName());
-                
+			UE_LOG(LogTemp, Warning, TEXT("[%s] Герой успешно привязан к контроллеру: %s"), *RoleString, *Hero->GetName());
+
 			// ТУТ инициализируй HUD или камеру
 		}
 	}
@@ -74,29 +72,25 @@ void AMD_PlayerController::OnRep_Hero()
 void AMD_PlayerController::SetMatchMode_Implementation(EMathStage InMatchStage)
 {
 	MatchStage = InMatchStage;
-	
+
 	switch (MatchStage)
 	{
-	case EMathStage::Draft:
-		break;
-	case EMathStage::PreGame:
-		break;
-	case EMathStage::InProgress:
-		if (ULocalPlayer* LocalPlayer = GetLocalPlayer())
-		{
-			if (UEnhancedInputLocalPlayerSubsystem* Subsystem = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
+		case EMathStage::Draft: break;
+		case EMathStage::PreGame: break;
+		case EMathStage::InProgress:
+			if (ULocalPlayer* LocalPlayer = GetLocalPlayer())
 			{
-				if (ClickMoveMappingContext)
+				if (UEnhancedInputLocalPlayerSubsystem* Subsystem = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
 				{
-					Subsystem->AddMappingContext(ClickMoveMappingContext,0);
+					if (ClickMoveMappingContext)
+					{
+						Subsystem->AddMappingContext(ClickMoveMappingContext, 0);
+					}
 				}
 			}
-		}
-		break;
-	case EMathStage::PostGame:
-		break;
-	default:
-		break;
+			break;
+		case EMathStage::PostGame: break;
+		default: break;
 	}
 }
 
@@ -128,7 +122,7 @@ void AMD_PlayerController::InputMove()
 	if (GetHitResultUnderCursor(ECC_Visibility, false, Hit))
 	{
 		Server_MoveToLocation(Hit.ImpactPoint);
-		
+
 		// Визуал клика
 	}
 }
@@ -138,14 +132,14 @@ void AMD_PlayerController::InputAttack()
 	FHitResult Hit;
 	if (GetHitResultUnderCursor(ECC_Pawn, false, Hit))
 	{
-		
+
 		UE_LOG(LogMyDotaGAS, Warning, TEXT("InputAttack: Hit"));
 		AActor* Target = Hit.GetActor();
 		if (Target)
 		{
 			if (Target == Hero) return;
 			if (!Cast<APawn>(Hit.GetActor())) return;
-			
+
 			UE_LOG(LogMyDotaGAS, Warning, TEXT("InputAttack: Hit target %s"), *Target->GetName());
 			Server_AttackTarget(Target);
 		}
@@ -154,22 +148,21 @@ void AMD_PlayerController::InputAttack()
 
 void AMD_PlayerController::Server_MoveToLocation_Implementation(FVector InLocation)
 {
-	
+
 	if (Hero)
 	{
 		if (UMD_AbilitySystemComponent* ASC = Cast<UMD_AbilitySystemComponent>(Hero->GetAbilitySystemComponent()))
 		{
 			ASC->CancelAbilityWithTag(MyDotaTags::Ability_Attack);
 		}
-		
-		
+
 		// ИСПРАВЛЕНИЕ ДЛЯ ХОСТА:
 		// Проверяем, не завладел ли случайно PlayerController этим героем
 		if (Hero->GetController() == this)
 		{
 			UE_LOG(LogTemp, Error, TEXT("Хост владеет героем напрямую! AI отключен."));
 			// Если это случилось, нужно сделать UnPossess и дать AI перехватить управление
-			UnPossess(); 
+			UnPossess();
 		}
 
 		AAIController* AIC = Cast<AAIController>(Hero->GetController());
@@ -187,22 +180,22 @@ void AMD_PlayerController::Server_AttackTarget_Implementation(AActor* Target)
 	{
 		FGameplayEventData Payload;
 		Payload.Target = Target;
-		
+
 		int32 count = Hero->GetAbilitySystemComponent()->HandleGameplayEvent(MyDotaTags::Event_Ability_RequestAttack, &Payload);
 		UE_LOG(LogMyDotaGAS, Warning, TEXT("Server_AttackTarget Executes Events %d"), count);
 	}
 }
 
 void AMD_PlayerController::SpawnHero()
-{	
+{
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.Owner = nullptr; // <--- КРИТИЧНО для MOBA
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
-	Hero = GetWorld()->SpawnActor<AMD_CharacterBase>(HeroClass, FVector(0,0,100), FRotator::ZeroRotator, SpawnParams);
-    
+	Hero = GetWorld()->SpawnActor<AMD_CharacterBase>(HeroClass, FVector(0, 0, 100), FRotator::ZeroRotator, SpawnParams);
+
 	if (Hero)
 	{
-		OnRep_Hero(); 
+		OnRep_Hero();
 	}
 }

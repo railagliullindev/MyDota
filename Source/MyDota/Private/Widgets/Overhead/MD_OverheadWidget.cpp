@@ -1,6 +1,5 @@
 // Rail Agliullin Dev. All Rights Reserved
 
-
 #include "Widgets/Overhead/MD_OverheadWidget.h"
 
 #include "Components/ProgressBar.h"

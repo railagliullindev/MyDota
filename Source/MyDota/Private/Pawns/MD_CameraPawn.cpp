@@ -1,6 +1,5 @@
 // Rail Agliullin Dev. All Rights Reserved
 
-
 #include "Pawns/MD_CameraPawn.h"
 
 #include "EnhancedInputSubsystems.h"
@@ -16,19 +15,20 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/GameplayStatics.h"
 
-AMD_CameraPawn::AMD_CameraPawn() : SnapSpeed(30.f)
+AMD_CameraPawn::AMD_CameraPawn()
+	: SnapSpeed(30.f)
 {
 	// Don't rotate character to camera direction
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationYaw = false;
 	bUseControllerRotationRoll = false;
-	
+
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = true;
 
 	SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
 	RootComponent = SceneRoot;
-	
+
 	// Create the camera boom component
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 
@@ -37,32 +37,32 @@ AMD_CameraPawn::AMD_CameraPawn() : SnapSpeed(30.f)
 	CameraBoom->TargetArmLength = 1500.f;
 	CameraBoom->SetRelativeRotation(FRotator(-50.f, -45.f, 0.f));
 	CameraBoom->bDoCollisionTest = false;
-	
+
 	// Create the camera component
 	CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("TopDownCamera"));
 
 	CameraComponent->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	CameraComponent->bUsePawnControlRotation = false;
-	
+
 	AbilitySystem = CreateDefaultSubobject<UMD_AbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 }
 
 void AMD_CameraPawn::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	
+
 	TArray<AActor*> FoundVolumes;
 	UGameplayStatics::GetAllActorsWithTag(GetWorld(), FName("CameraLimit"), FoundVolumes);
 	if (FoundVolumes.Num() > 0)
 	{
 		CameraBounds = FoundVolumes[0]->GetComponentsBoundingBox();
 	}
-	
+
 	if (!HasAuthority())
 	{
 		AbilitySystem->InitAbilityActorInfo(this, this);
-	}else
+	}
+	else
 	{
 		AbilitySystem->InitAbilityActorInfo(this, this);
 		if (!StartupData.IsValid())
@@ -89,11 +89,11 @@ void AMD_CameraPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 	checkf(InputConfigDataAsset, TEXT("Forgot to assign a valid asset as input config"));
 	ULocalPlayer* LocalPlayer = GetController<APlayerController>()->GetLocalPlayer();
 	UEnhancedInputLocalPlayerSubsystem* EnhancedInputLPSubsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(LocalPlayer);
-	
+
 	check(EnhancedInputLPSubsystem)
-	
-	UMyDotaInputComponent* DotaInputComponent = CastChecked<UMyDotaInputComponent>(PlayerInputComponent);
-	
+
+		UMyDotaInputComponent* DotaInputComponent = CastChecked<UMyDotaInputComponent>(PlayerInputComponent);
+
 	DotaInputComponent->BindAbilityInputAction(InputConfigDataAsset, this, &ThisClass::Input_AbilityInputPressed, &ThisClass::Input_AbilityInputReleased);
 }
 void AMD_CameraPawn::Tick(float DeltaSeconds)
@@ -103,7 +103,8 @@ void AMD_CameraPawn::Tick(float DeltaSeconds)
 	if (AbilitySystem->HasMatchingGameplayTag(MyDotaTags::Camera_FollowingHero))
 	{
 		FollowHeroSmoothly(DeltaSeconds);
-	}else
+	}
+	else
 	{
 		TryMoveToCameraOnEdge();
 	}
@@ -112,7 +113,7 @@ void AMD_CameraPawn::Tick(float DeltaSeconds)
 void AMD_CameraPawn::ClampCameraLocation(FVector& OutLocation)
 {
 	if (CameraBounds.IsValid == 0) return;
-	
+
 	OutLocation.X = FMath::Clamp(OutLocation.X, CameraBounds.Min.X, CameraBounds.Max.X);
 	OutLocation.Y = FMath::Clamp(OutLocation.Y, CameraBounds.Min.Y, CameraBounds.Max.Y);
 }
@@ -124,12 +125,12 @@ void AMD_CameraPawn::FollowHeroSmoothly(const float& InTime)
 	{
 		FollowingTarget = PC->GetHero();
 	}
-	
+
 	if (FollowingTarget)
 	{
 		const FVector TargetLoc = FollowingTarget->GetActorLocation();
 		const FVector CurrentLoc = GetActorLocation();
-		
+
 		FVector NewLoc = FMath::VInterpTo(CurrentLoc, TargetLoc, InTime, SnapSpeed);
 		ClampCameraLocation(NewLoc);
 		SetActorLocation(NewLoc);
@@ -215,7 +216,7 @@ void AMD_CameraPawn::HandleCameraMove(const FVector2D& Input)
 
 	const float DeltaSeconds = GetWorld() ? GetWorld()->GetDeltaSeconds() : 0.f;
 	if (DeltaSeconds <= 0.f) return;
-	
+
 	FVector Forward = CameraComponent->GetForwardVector();
 	Forward.Z = 0.f;
 	Forward.Normalize();
@@ -226,11 +227,10 @@ void AMD_CameraPawn::HandleCameraMove(const FVector2D& Input)
 
 	// 1. Считаем желаемое смещение
 	const FVector Movement = (Forward * Input.Y + Right * Input.X) * MoveSpeed * DeltaSeconds;
-	
+
 	FVector NewLocation = GetActorLocation() + Movement;
 	ClampCameraLocation(NewLocation);
 
 	// 4. Устанавливаем итоговую позицию (вместо AddActorWorldOffset)
 	SetActorLocation(NewLocation);
 }
-

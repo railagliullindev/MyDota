@@ -1,0 +1,29 @@
+
+Language: Cpp
+BasedOnStyle: Microsoft
+IndentWidth: 4
+UseTab: Always
+TabWidth: 4
+BreakBeforeBraces: Custom
+BraceWrapping:
+  SplitEmptyFunction: true
+  AfterClass: true
+  AfterCaseLabel: true
+  BeforeLambdaBody: true
+ColumnLimit: 200
+AccessModifierOffset: -4
+SortIncludes: Never
+AllowShortBlocksOnASingleLine: Never
+AlignAfterOpenBracket: DontAlign
+AllowShortFunctionsOnASingleLine: None
+PointerAlignment: Left
+AllowShortIfStatementsOnASingleLine: AllIfsAndElse
+SpacesBeforeTrailingComments: 1
+AllowShortCaseLabelsOnASingleLine: true
+IndentCaseLabels: true
+BreakTemplateDeclarations: Yes
+AlignEscapedNewlines: Left
+BreakConstructorInitializers: BeforeComma
+NamespaceIndentation: All
+AllowShortLambdasOnASingleLine: None
+EmptyLineAfterAccessModifier: Always

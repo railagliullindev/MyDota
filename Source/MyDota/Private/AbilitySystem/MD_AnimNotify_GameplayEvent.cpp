@@ -3,13 +3,12 @@
 #include "AbilitySystem/MD_AnimNotify_GameplayEvent.h"
 #include "AbilitySystemBlueprintLibrary.h"
 
-void UMD_AnimNotify_GameplayEvent::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
-	const FAnimNotifyEventReference& EventReference)
+void UMD_AnimNotify_GameplayEvent::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference)
 {
 	Super::Notify(MeshComp, Animation, EventReference);
-	
+
 	AActor* Owner = MeshComp->GetOwner();
-	
+
 	if (Owner && Owner->HasAuthority())
 	{
 		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner, EventTag, EventData);

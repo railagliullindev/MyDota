@@ -14,17 +14,20 @@ USTRUCT(BlueprintType)
 struct FMDInputActionConfig
 {
 	GENERATED_BODY()
-	
+
 public:
-	
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (Categories = "InputTag"))
 	FGameplayTag InputTag;
-	
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	UInputAction* InputAction;
-	
-	FMDInputActionConfig() : InputAction(nullptr) {}
-	
+
+	FMDInputActionConfig()
+		: InputAction(nullptr)
+	{
+	}
+
 	bool IsValid() const
 	{
 		return InputTag.IsValid() && InputAction;
@@ -32,22 +35,23 @@ public:
 };
 
 /**
- * 
+ *
  */
 UCLASS()
 class MYDOTA_API UDataAsset_InputConfig : public UDataAsset
 {
 	GENERATED_BODY()
-	
+
 public:
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	UInputMappingContext* DefaultMappingContext;
-	
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (TitleProperty = "InputTag"))
 	TArray<FMDInputActionConfig> NativeInputActions;
-	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly , meta = (TitleProperty = "InputTag"))
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (TitleProperty = "InputTag"))
 	TArray<FMDInputActionConfig> AbilityInputActions;
-	
+
 	UInputAction* FindNativeInputActionByTag(const FGameplayTag& InInputTag) const;
 };

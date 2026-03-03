@@ -7,11 +7,10 @@
 #include "GEEExecCalc_DamageTaken.generated.h"
 
 /**
- * 
+ *
  */
 UCLASS()
 class MYDOTA_API UGEEExecCalc_DamageTaken : public UGameplayEffectExecutionCalculation
 {
 	GENERATED_BODY()
-	
 };

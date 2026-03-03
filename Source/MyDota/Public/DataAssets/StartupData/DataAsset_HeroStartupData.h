@@ -8,19 +8,19 @@
 
 struct FMDHeroAbilitySet;
 /**
- * 
+ *
  */
 UCLASS()
 class MYDOTA_API UDataAsset_HeroStartupData : public UDataAsset_StartupDataBase
 {
 	GENERATED_BODY()
-	
+
 public:
-	
+
 	virtual void GiveToAbilitySystemComponent(UMD_AbilitySystemComponent* InASCToGive, int32 ApplyLevel = 1) override;
-	
+
 private:
-	
-	UPROPERTY(EditDefaultsOnly, Category="Startup Data", meta = (TitleProperty = "InputTag"))
+
+	UPROPERTY(EditDefaultsOnly, Category = "Startup Data", meta = (TitleProperty = "InputTag"))
 	TArray<FMDHeroAbilitySet> HeroStartupAbilitySets;
 };

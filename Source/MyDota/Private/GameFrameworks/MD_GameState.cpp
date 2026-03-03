@@ -1,6 +1,5 @@
 // Rail Agliullin Dev. All Rights Reserved
 
-
 #include "GameFrameworks/MD_GameState.h"
 
 #include "AbilitySystemComponent.h"
@@ -16,7 +15,7 @@
 void AMD_GameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	
+
 	DOREPLIFETIME(AMD_GameState, PickedHeroClasses);
 	DOREPLIFETIME(AMD_GameState, MathStage);
 }
@@ -25,44 +24,42 @@ void AMD_GameState::OnRep_MatchStage()
 {
 	switch (MathStage)
 	{
-	case EMathStage::Draft:
-		UE_LOG(LogTemp, Warning, TEXT("Клиент: Начался драфт"));
-		
-		// Находим локальный контроллер и говорим ему активировать Draft-абилку
-		if (AMD_PlayerController* PC = Cast<AMD_PlayerController>(GetWorld()->GetFirstPlayerController()))
-		{
-			if (AMD_CameraPawn* CamPawn = Cast<AMD_CameraPawn>(PC->GetPawn()))
+		case EMathStage::Draft:
+			UE_LOG(LogTemp, Warning, TEXT("Клиент: Начался драфт"));
+
+			// Находим локальный контроллер и говорим ему активировать Draft-абилку
+			if (AMD_PlayerController* PC = Cast<AMD_PlayerController>(GetWorld()->GetFirstPlayerController()))
 			{
-				CamPawn->GetAbilitySystemComponent()->TryActivateAbilitiesByTag(FGameplayTagContainer{MyDotaTags::Ability_ShowDraft});
+				if (AMD_CameraPawn* CamPawn = Cast<AMD_CameraPawn>(PC->GetPawn()))
+				{
+					CamPawn->GetAbilitySystemComponent()->TryActivateAbilitiesByTag(FGameplayTagContainer{MyDotaTags::Ability_ShowDraft});
+				}
 			}
-		}
-		break;
-		
+			break;
+
 		case EMathStage::InProgress:
 			UE_LOG(LogTemp, Warning, TEXT("Клиент: Игра началась"));
-		
-		if (AMD_PlayerController* PC = Cast<AMD_PlayerController>(GetWorld()->GetFirstPlayerController()))
-		{
-			if (AMD_CameraPawn* CamPawn = Cast<AMD_CameraPawn>(PC->GetPawn()))
+
+			if (AMD_PlayerController* PC = Cast<AMD_PlayerController>(GetWorld()->GetFirstPlayerController()))
 			{
-				CamPawn->GetMDAbilitySystemComponent()->CancelAbilityWithTag(MyDotaTags::Ability_ShowDraft);
-				CamPawn->GetAbilitySystemComponent()->TryActivateAbilitiesByTag(FGameplayTagContainer{MyDotaTags::Ability_ShowGameplayHUD});
+				if (AMD_CameraPawn* CamPawn = Cast<AMD_CameraPawn>(PC->GetPawn()))
+				{
+					CamPawn->GetMDAbilitySystemComponent()->CancelAbilityWithTag(MyDotaTags::Ability_ShowDraft);
+					CamPawn->GetAbilitySystemComponent()->TryActivateAbilitiesByTag(FGameplayTagContainer{MyDotaTags::Ability_ShowGameplayHUD});
+				}
 			}
-		}
-		break;
-		
-		default:
 			break;
+
+		default: break;
 	}
 }
-
 
 void AMD_GameState::SetMatchStage(EMathStage NewStage)
 {
 	if (HasAuthority())
 	{
 		MathStage = NewStage;
-		
+
 		OnRep_MatchStage();
 	}
 }
@@ -76,7 +73,7 @@ bool AMD_GameState::AreAllHeroesSelected() const
 {
 	const int32 PlayerCount = PlayerArray.Num();
 	const int32 PickedCount = PickedHeroClasses.Num();
-	
+
 	return PlayerCount > 0 && PickedCount >= PlayerCount;
 }
 
@@ -87,7 +84,7 @@ void AMD_GameState::MarkHeroAsPicked(TSubclassOf<AMD_CharacterBase> InHeroClass)
 		PickedHeroClasses.AddUnique(InHeroClass);
 		FString RoleString = HasAuthority() ? TEXT("ListenServer-Host") : TEXT("Remote-Client");
 		UE_LOG(LogTemp, Warning, TEXT("[%s] Герой %s теперь занят!"), *RoleString, *InHeroClass->GetName());
-		
+
 		if (AreAllHeroesSelected())
 		{
 			if (AMD_GameMode* GM = Cast<AMD_GameMode>(GetWorld()->GetAuthGameMode()))
@@ -97,4 +94,3 @@ void AMD_GameState::MarkHeroAsPicked(TSubclassOf<AMD_CharacterBase> InHeroClass)
 		}
 	}
 }
-

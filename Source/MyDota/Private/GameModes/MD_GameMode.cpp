@@ -1,6 +1,5 @@
 // Rail Agliullin Dev. All Rights Reserved
 
-
 #include "GameModes/MD_GameMode.h"
 
 #include "Characters/MD_CharacterBase.h"
@@ -19,10 +18,10 @@ AMD_GameMode::AMD_GameMode()
 void AMD_GameMode::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
 	MD_GameState = GetGameState<AMD_GameState>();
 	checkf(MD_GameState, TEXT("Game state is not AMD_GameState"));
-	
+
 	SetMatchStage(EMathStage::WaitingForPlayers);
 }
 
@@ -30,9 +29,9 @@ void AMD_GameMode::PostLogin(APlayerController* NewPlayer)
 {
 	if (MatchStage != EMathStage::WaitingForPlayers) return;
 	if (!NewPlayer) return;
-	
+
 	Super::PostLogin(NewPlayer);
-	
+
 	// Установка стороны
 	AMD_PlayerState* PS = NewPlayer->GetPlayerState<AMD_PlayerState>();
 	if (PS)
@@ -40,38 +39,34 @@ void AMD_GameMode::PostLogin(APlayerController* NewPlayer)
 		PS->bIsTeamA = bIsTeamA;
 		bIsTeamA = !bIsTeamA;
 	}
-	
+
 	SpawnCameraForPlayer(NewPlayer);
 }
 
 void AMD_GameMode::SetMatchStage(EMathStage NewStage)
 {
-	//if (MatchStage >= NewStage) return;
-	
+	// if (MatchStage >= NewStage) return;
+
 	MatchStage = NewStage;
-	
+
 	switch (MatchStage)
 	{
-	case EMathStage::WaitingForPlayers:
-		UE_LOG(LogTemp, Warning, TEXT("AMD_GameMode::SetMatchStage WAITINGFORPLAYERS"));
-		WaitingForPlayers();
-		break;
-	case EMathStage::Draft:
-		UE_LOG(LogTemp, Warning, TEXT("AMD_GameMode::SetMatchStage DRAFT"));
-		Draft();
-		break;
-	case EMathStage::PreGame:
-		UE_LOG(LogTemp, Warning, TEXT("AMD_GameMode::SetMatchStage PRE GAME"));
-		break;
-	case EMathStage::InProgress:
-		UE_LOG(LogTemp, Warning, TEXT("AMD_GameMode::SetMatchStage IN PROGRESS"));
-		InProgress();
-		break;
-	case EMathStage::PostGame:
-		UE_LOG(LogTemp, Warning, TEXT("AMD_GameMode::SetMatchStage POST GAME"));
-		break;
+		case EMathStage::WaitingForPlayers:
+			UE_LOG(LogTemp, Warning, TEXT("AMD_GameMode::SetMatchStage WAITINGFORPLAYERS"));
+			WaitingForPlayers();
+			break;
+		case EMathStage::Draft:
+			UE_LOG(LogTemp, Warning, TEXT("AMD_GameMode::SetMatchStage DRAFT"));
+			Draft();
+			break;
+		case EMathStage::PreGame: UE_LOG(LogTemp, Warning, TEXT("AMD_GameMode::SetMatchStage PRE GAME")); break;
+		case EMathStage::InProgress:
+			UE_LOG(LogTemp, Warning, TEXT("AMD_GameMode::SetMatchStage IN PROGRESS"));
+			InProgress();
+			break;
+		case EMathStage::PostGame: UE_LOG(LogTemp, Warning, TEXT("AMD_GameMode::SetMatchStage POST GAME")); break;
 	}
-	
+
 	MD_GameState->SetMatchStage(NewStage);
 }
 
@@ -80,21 +75,21 @@ void AMD_GameMode::WaitingForPlayers()
 	const float Delay = 2.0f; // Задержка в секундах
 
 	FTimerHandle TimerHandle;
-	GetWorldTimerManager().SetTimer(TimerHandle, [this]()
-	{
-		SetMatchStage(EMathStage::Draft);
-
-	}, Delay, false);
+	GetWorldTimerManager().SetTimer(
+		TimerHandle,
+		[this]()
+		{
+			SetMatchStage(EMathStage::Draft);
+		},
+		Delay, false);
 }
 
 void AMD_GameMode::Draft()
 {
-	
 }
 
 void AMD_GameMode::PreGame()
 {
-	
 }
 
 void AMD_GameMode::InProgress()
@@ -106,15 +101,15 @@ void AMD_GameMode::InProgress()
 		if (!PC) continue;
 
 		FString RoleString = HasAuthority() ? TEXT("ListenServer-Host") : TEXT("Remote-Client");
-		UE_LOG(LogTemp, Log, TEXT("[%s] Перевод на старт - %s"),*RoleString, *PC->GetName());
-		
+		UE_LOG(LogTemp, Log, TEXT("[%s] Перевод на старт - %s"), *RoleString, *PC->GetName());
+
 		AMD_PlayerState* PS = PC->GetPlayerState<AMD_PlayerState>();
-		
+
 		// Проверяем, выбрал ли игрок героя
 		if (PS && PS->SelectedHeroClass)
-		{			
+		{
 			PC->SetMatchMode(MatchStage);
-			
+
 			// Находим точку спавна (например, PlayerStart)
 			AActor* SpawnPoint = FindPlayerStart(PC);
 			FVector Loc = SpawnPoint ? SpawnPoint->GetActorLocation() : FVector::ZeroVector;
@@ -124,8 +119,7 @@ void AMD_GameMode::InProgress()
 			HeroSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
 			// 3. Спавним именно тот класс, который лежит в PlayerState
-			AMD_CharacterBase* NewHero = GetWorld()->SpawnActor<AMD_CharacterBase>(
-				PS->SelectedHeroClass, Loc, FRotator::ZeroRotator, HeroSpawnParams);
+			AMD_CharacterBase* NewHero = GetWorld()->SpawnActor<AMD_CharacterBase>(PS->SelectedHeroClass, Loc, FRotator::ZeroRotator, HeroSpawnParams);
 
 			if (NewHero)
 			{
@@ -142,23 +136,22 @@ void AMD_GameMode::InProgress()
 
 void AMD_GameMode::PostGame()
 {
-	
 }
 
 void AMD_GameMode::SpawnCameraForPlayer(APlayerController* NewPlayer)
 {
 	FActorSpawnParameters SpawnParameters;
 	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-	
+
 	FVector SpawnLocation = FVector::ZeroVector;
 	FRotator SpawnRotation = FRotator::ZeroRotator;
-	
+
 	if (AActor* PlayerStart = FindPlayerStart(NewPlayer))
 	{
 		SpawnLocation = PlayerStart->GetActorLocation();
 		SpawnRotation = PlayerStart->GetActorRotation();
 	}
-	
+
 	APawn* CameraPawn = GetWorld()->SpawnActor<APawn>(CameraPawnClass, SpawnLocation, SpawnRotation, SpawnParameters);
 	if (CameraPawn)
 	{

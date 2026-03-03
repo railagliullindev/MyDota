@@ -15,7 +15,7 @@ UMD_AttributeSet::UMD_AttributeSet()
 void UMD_AttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue)
 {
 	Super::PreAttributeChange(Attribute, NewValue);
-	
+
 	if (Attribute == GetHealthAttribute())
 	{
 		NewValue = FMath::Clamp(NewValue, 0.f, GetHealthMax());
@@ -28,7 +28,7 @@ void UMD_AttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute, f
 void UMD_AttributeSet::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	
+
 	DOREPLIFETIME_CONDITION_NOTIFY(UMD_AttributeSet, Health, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UMD_AttributeSet, HealthMax, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UMD_AttributeSet, Mana, COND_None, REPNOTIFY_Always);

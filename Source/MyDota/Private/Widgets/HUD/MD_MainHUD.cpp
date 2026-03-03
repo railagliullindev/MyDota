@@ -1,6 +1,5 @@
 // Rail Agliullin Dev. All Rights Reserved
 
-
 #include "Widgets/HUD/MD_MainHUD.h"
 
 #include "Components/ProgressBar.h"

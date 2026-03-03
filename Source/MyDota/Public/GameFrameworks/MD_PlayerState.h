@@ -11,36 +11,36 @@ class UMD_AbilitySystemComponent;
 class UMD_AttributeSet;
 class AMD_CharacterBase;
 /**
- * 
+ *
  */
 UCLASS()
 class MYDOTA_API AMD_PlayerState : public APlayerState, public IAbilitySystemInterface
 {
 	GENERATED_BODY()
-	
+
 public:
-	
+
 	AMD_PlayerState();
-	
+
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 	UMD_AttributeSet* GetAttributeSet() const;
-	
+
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
-	
+
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Draft")
 	TSubclassOf<AMD_CharacterBase> SelectedHeroClass;
-	
+
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Draft")
 	bool bIsTeamA;
-	
+
 	UFUNCTION(Server, Reliable, WithValidation)
 	void Server_SetSelectedHero(TSubclassOf<AMD_CharacterBase> InHeroClass);
-	
+
 protected:
-	
+
 	UPROPERTY(VisibleAnywhere, Category = "GAS")
 	UMD_AbilitySystemComponent* AbilitySystemComponent;
-	
+
 	UPROPERTY(VisibleAnywhere, Category = "GAS")
 	UMD_AttributeSet* AttributeSet;
 };
