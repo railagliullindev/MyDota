@@ -292,6 +292,21 @@ bool AFogOfWarManager::IsCellVisible(FIntPoint GridPos) const
 	const int32 Index = GridPos.X + GridPos.Y * MapSize.X;
 	if (RawVisibilityData.IsValidIndex(Index))
 	{
+		if (false)
+		{
+			if (AssignedTeamID == EMDTeam::Dire)
+			{
+				for (int i = 0; i < RawVisibilityData.Num(); ++i)
+				{
+					const FVector Loc = GridToWorld(i);
+
+					DrawDebugPoint(GetWorld(), Loc + FVector(0, 0, 100.f), 5.f, (RawVisibilityData[i] == 255) ? FColor::Green : FColor::Red, false, 1.f);
+				}
+				const FVector Loc2 = GridToWorld(GridPos);
+				DrawDebugPoint(GetWorld(), Loc2 + FVector(0, 0, 250.f), 50.f, FColor::Blue, false, 1.f);
+			}
+		}
+
 		return RawVisibilityData[Index] == 255;
 	}
 	return false;

@@ -22,6 +22,7 @@ AMD_CharacterBase::AMD_CharacterBase()
 	bReplicates = true;
 	bAlwaysRelevant = false;
 	ACharacter::SetReplicateMovement(true);
+	SetNetCullDistanceSquared(400000000.f);
 
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
 
@@ -90,21 +91,17 @@ FGenericTeamId AMD_CharacterBase::GetGenericTeamId() const
 
 bool AMD_CharacterBase::IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const
 {
-	// 1. Базовая проверка (владелец всегда видит своего юнита)
-	if (Super::IsNetRelevantFor(RealViewer, ViewTarget, SrcLocation))
+	const IMDTeamInterface* ViewerTeam = Cast<const IMDTeamInterface>(RealViewer);
+	AFogOfWarManager* FogManager = AFogOfWarManager::Get(this, (uint8)ViewerTeam->GetTeam());
+	if (FogManager)
 	{
-		// Если это союзник — он всегда релевантен
-		const IMDTeamInterface* ViewerTeam = Cast<const IMDTeamInterface>(RealViewer);
-		if (ViewerTeam && ViewerTeam->GetTeam() == this->GetTeam()) return true;
-	}
+		const AMD_PlayerController* PC = Cast<AMD_PlayerController>(RealViewer);
 
-	// 2. Проверка через туман войны (для врагов)
-	const AFogOfWarManager* FogManager = AFogOfWarManager::Get(this, (uint8)GetTeam());
-	const AMD_PlayerController* PC = Cast<AMD_PlayerController>(RealViewer);
-	if (FogManager && PC && PC->GetHero())
-	{
-		const FIntPoint GridPos = FogManager->WorldToGrid(PC->GetHero()->GetActorLocation());
-		return FogManager->IsCellVisible(GridPos);
+		if (PC && PC->GetHero())
+		{
+			const FIntPoint GridPos = FogManager->WorldToGrid(this->GetActorLocation()); // PC->GetHero()->GetActorLocation());
+			return FogManager->IsCellVisible(GridPos);
+		}
 	}
 
 	return false;
