@@ -41,6 +41,9 @@ public:
 	/** Метод для обновления видимости от юнита */
 	void UpdateLineOfSight(FVector Origin, float Radius);
 
+	/** Метод для обновления видимости от юнита */
+	void UpdateLineOfSightCached(FVisionSource& Source);
+
 	/** Регистрация в сети */
 	void RegisterSource(AActor* InActor, float InRadius);
 
@@ -99,6 +102,9 @@ private:
 	UPROPERTY()
 	UTexture2D* FogTexture;
 
+	/** Флаг для принудительного пересчета (например, дерево срубили) */
+	bool bForceUpdate = false;
+
 	/** Специальная структура для обновления регионов текстуры */
 	FUpdateTextureRegion2D* TextureRegion;
 
@@ -120,6 +126,9 @@ private:
 	/** Рассчитать туман войны */
 	void CalculateFogOfWar();
 
+	/** Рассчитать туман войны */
+	void CalculateFogOfWarCached();
+
 	FTimerHandle TimerHandle;
 
 	/** Тик обновления тумана войны на сервере */
@@ -134,6 +143,8 @@ private:
 
 	/** Расчет видимости */
 	void TraceLine(FIntPoint Start, FIntPoint End, int32 MaxRange, uint8 ViewerHeight);
+
+	void TraceLine(FIntPoint Start, FIntPoint End, int32 MaxRange, uint8 ViewerHeight, TArray<int32>& OutIndices);
 
 	/** Получить высоту ячейки */
 	uint8 GetTerrainHeight(FIntPoint GridCoords) const;

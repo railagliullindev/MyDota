@@ -115,6 +115,67 @@ void AFogOfWarManager::TraceLine(FIntPoint Start, FIntPoint End, int32 MaxRange,
 	}
 }
 
+void AFogOfWarManager::TraceLine(FIntPoint Start, FIntPoint End, int32 MaxRange, uint8 ViewerHeight, TArray<int32>& OutIndices)
+{
+	// 1. Вычисляем параметры прямой
+	int32 x = Start.X;
+	int32 y = Start.Y;
+	int32 dx = FMath::Abs(End.X - Start.X);
+	int32 dy = FMath::Abs(End.Y - Start.Y);
+	int32 x_inc = (End.X > Start.X) ? 1 : -1;
+	int32 y_inc = (End.Y > Start.Y) ? 1 : -1;
+	int32 error = dx - dy;
+	dx *= 2;
+	dy *= 2;
+
+	// Максимальное количество шагов (чтобы не уйти в бесконечный цикл)
+	int32 n = 1 + (dx / 2) + (dy / 2);
+	int32 MaxRangeSq = MaxRange * MaxRange;
+
+	for (; n > 0; --n)
+	{
+		// 2. Проверка границ сетки (защита от краша)
+		if (x < 0 || x >= MapSize.X || y < 0 || y >= MapSize.Y) break;
+
+		int32 Index = x + y * MapSize.X;
+
+		// 3. Проверка дистанции (чтобы обзор был круглым, а не квадратным)
+		int32 CurDistSq = (x - Start.X) * (x - Start.X) + (y - Start.Y) * (y - Start.Y);
+		if (CurDistSq > MaxRangeSq) break;
+
+		// 4. Логика препятствий (Деревья / Стены)
+		if (StaticObstacles[Index])
+		{
+			// В Dota мы видим само дерево, но не то, что ЗА ним
+			OutIndices.AddUnique(Index);
+			break;
+		}
+
+		// 5. Логика High Ground
+		if (TerrainHeights[Index] > ViewerHeight)
+		{
+			// Видим только склон (границу возвышенности), но не саму гору
+			OutIndices.AddUnique(Index);
+			break;
+		}
+
+		// 6. Если всё чисто — добавляем ячейку в кеш видимости
+		OutIndices.AddUnique(Index);
+
+		// 7. Шаг алгоритма Брезенхема
+		if (error > 0)
+		{
+			x += x_inc;
+			error -= dy;
+		}
+		else
+		{
+			y += y_inc;
+			error += dx;
+		}
+	}
+}
+
 void AFogOfWarManager::UpdateTexture()
 {
 	if (!FogTexture) return;
@@ -240,7 +301,9 @@ void AFogOfWarManager::CalculateFogOfWar()
 		if (Source.SourceActor && IsValid(Source.SourceActor))
 		{
 			// Берем позицию юнита и вызываем нашу магию Line of Sight
-			UpdateLineOfSight(Source.SourceActor->GetActorLocation(), Source.Radius);
+			UpdateLineOfSightCached(Source);
+			// Без оптимизации
+			// UpdateLineOfSight(Source.SourceActor->GetActorLocation(), Source.Radius);
 		}
 	}
 
@@ -260,6 +323,40 @@ void AFogOfWarManager::CalculateFogOfWar()
 	// ВАЖНО: Принудительно помечаем массив для репликации,
 	// так как TArray внутри не всегда триггерит репликацию при изменении элементов
 	MARK_PROPERTY_DIRTY_FROM_NAME(AFogOfWarManager, CompressedFogData, this);
+}
+
+void AFogOfWarManager::CalculateFogOfWarCached()
+{
+	// 1. Проверка безопасности: сервер и наличие данных
+	if (!HasAuthority() || RawVisibilityData.Num() == 0) return;
+
+	bool bAnythingChanged = bForceUpdate;
+
+	// 2. Проверяем, кто из юнитов сдвинулся
+	const float Distance = MapSize.X / 2;
+	for (FVisionSource& Source : ActiveVisionSources)
+	{
+		if (!IsValid(Source.SourceActor)) continue;
+
+		FVector CurrentLoc = Source.SourceActor->GetActorLocation();
+		uint8 CurrentHeight = GetTerrainHeight(WorldToGrid(CurrentLoc));
+
+		// Если сдвинулся больше чем на 1/2 ячейки (50см при Grid=100) или сменил высоту
+		if (FVector::DistSquared(CurrentLoc, Source.LastLocation) > FMath::Square(Distance) || CurrentHeight != Source.LastViewerHeight)
+		{
+			Source.bIsDirty = true;
+			Source.LastLocation = CurrentLoc;
+			Source.LastViewerHeight = CurrentHeight;
+			bAnythingChanged = true;
+		}
+	}
+
+	// 3. Если ничего не изменилось - экономим CPU и не шлем пакеты
+	if (!bAnythingChanged) return;
+
+	CalculateFogOfWar();
+
+	bForceUpdate = false;
 }
 
 void AFogOfWarManager::UpdateLineOfSight(FVector Origin, float Radius)
@@ -287,6 +384,35 @@ void AFogOfWarManager::UpdateLineOfSight(FVector Origin, float Radius)
 	}
 }
 
+void AFogOfWarManager::UpdateLineOfSightCached(FVisionSource& Source)
+{
+	if (Source.bIsDirty)
+	{
+		Source.VisibleIndices.Empty();
+		FIntPoint Center = WorldToGrid(Source.LastLocation);
+		int32 RangeCells = FMath::RoundToInt(Source.Radius / GridCellSize);
+
+		// Пускаем лучи Брезенхема по периметру
+		for (int32 x = Center.X - RangeCells; x <= Center.X + RangeCells; x++)
+		{
+			TraceLine(Center, FIntPoint(x, Center.Y - RangeCells), RangeCells, Source.LastViewerHeight, Source.VisibleIndices);
+			TraceLine(Center, FIntPoint(x, Center.Y + RangeCells), RangeCells, Source.LastViewerHeight, Source.VisibleIndices);
+		}
+		for (int32 y = Center.Y - RangeCells; y <= Center.Y + RangeCells; y++)
+		{
+			TraceLine(Center, FIntPoint(Center.X - RangeCells, y), RangeCells, Source.LastViewerHeight, Source.VisibleIndices);
+			TraceLine(Center, FIntPoint(Center.X + RangeCells, y), RangeCells, Source.LastViewerHeight, Source.VisibleIndices);
+		}
+		Source.bIsDirty = false;
+	}
+
+	// Применяем кеш (даже если он не dirty, мы должны пометить ячейки как видимые в этом кадре)
+	for (int32 Index : Source.VisibleIndices)
+	{
+		RawVisibilityData[Index] = 255;
+	}
+}
+
 void AFogOfWarManager::RegisterSource(AActor* InActor, float InRadius)
 {
 	if (InActor)
@@ -302,7 +428,7 @@ void AFogOfWarManager::StartFogOfWar()
 {
 	if (HasAuthority())
 	{
-		GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &AFogOfWarManager::CalculateFogOfWar, FogUpdateTick, true);
+		GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &AFogOfWarManager::CalculateFogOfWarCached, FogUpdateTick, true);
 	}
 }
 
@@ -327,7 +453,7 @@ void AFogOfWarManager::Tick(float DeltaSeconds)
 {
 	if (!HasAuthority())
 	{
-		bool bNeedsTextureUpdate = false;
+		/*bool bNeedsTextureUpdate = false;
 
 		for (int32 i = 0; i < CurrentInterpolatedFog.Num(); ++i)
 		{
@@ -346,6 +472,27 @@ void AFogOfWarManager::Tick(float DeltaSeconds)
 		}
 
 		if (bNeedsTextureUpdate)
+		{
+			UpdateTexture();
+		}*/
+
+		bool bChanged = false;
+
+		for (int32 i = 0; i < CurrentInterpolatedFog.Num(); ++i)
+		{
+			float Current = CurrentInterpolatedFog[i];
+			float Target = TargetFogGoal[i];
+
+			if (!FMath::IsNearlyEqual(Current, Target, 0.001f))
+			{
+				// FInterpTo делает движение плавным (зависит от FogFadeSpeed)
+				CurrentInterpolatedFog[i] = FMath::FInterpTo(Current, Target, DeltaSeconds, FogFadeSpeed);
+				bChanged = true;
+			}
+		}
+
+		// Если хоть один пиксель изменился — пушим в текстуру
+		if (bChanged)
 		{
 			UpdateTexture();
 		}

@@ -49,16 +49,18 @@ struct FVisionSource
 	UPROPERTY()
 	AActor* SourceActor;
 
-	UPROPERTY()
 	float Radius;
+	uint8 LastViewerHeight;
+	FVector LastLocation;
+	bool bIsDirty;
 
-	UPROPERTY()
-	int32 TeamID;
+	TArray<int32> VisibleIndices;
 
 	FVisionSource()
 		: SourceActor(nullptr)
 		, Radius(0.0f)
-		, TeamID(0)
+		, LastViewerHeight(0)
+		, bIsDirty(false)
 	{
 	}
 };
