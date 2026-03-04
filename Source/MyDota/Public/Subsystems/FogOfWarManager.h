@@ -50,6 +50,13 @@ public:
 	void StartFogOfWar();
 	void EndFogOfWar();
 
+	/** Получить ячейку по из мировых координат */
+	FIntPoint WorldToGrid(FVector Location) const;
+
+	FVector GridToWorld(int32 Index) const;
+
+	bool IsCellVisible(FIntPoint GridPos) const;
+
 protected:
 
 	virtual void BeginPlay() override;
@@ -134,9 +141,6 @@ private:
 	/** Тик обновления тумана войны на сервере */
 	UPROPERTY(EditDefaultsOnly, Category = "Fog Settings|Server")
 	float FogUpdateTick = 0.1f;
-
-	/** Получить ячейку по из мировых координат */
-	FIntPoint WorldToGrid(FVector Location) const;
 
 	/** Получить мировые координаты из ячейки */
 	FVector GridToWorld(FIntPoint GridCoords) const;

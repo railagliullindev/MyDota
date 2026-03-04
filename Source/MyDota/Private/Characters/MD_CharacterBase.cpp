@@ -7,6 +7,7 @@
 #include "Actors/Projectile/MD_ProjectileBase.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/WidgetComponent.h"
+#include "Controllers/MD_PlayerController.h"
 #include "DataAssets/StartupData/DataAsset_HeroStartupData.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
@@ -16,24 +17,10 @@
 #include "Widgets/Overhead/MD_OverheadWidget.h"
 #include "Subsystems/FogOfWarManager.h"
 
-void AMD_CharacterBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
-{
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-
-	DOREPLIFETIME(AMD_CharacterBase, PS)
-}
-
-void AMD_CharacterBase::OnValueChanged(const FOnAttributeChangeData& Data)
-{
-	if (OverheadWidget)
-	{
-		OverheadWidget->UpdateStats(AS->GetHealth(), AS->GetHealthMax(), AS->GetMana(), AS->GetManaMax());
-	}
-}
-
 AMD_CharacterBase::AMD_CharacterBase()
 {
 	bReplicates = true;
+	bAlwaysRelevant = false;
 	ACharacter::SetReplicateMovement(true);
 
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
@@ -64,6 +51,21 @@ AMD_CharacterBase::AMD_CharacterBase()
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 }
 
+void AMD_CharacterBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(AMD_CharacterBase, PS)
+}
+
+void AMD_CharacterBase::OnValueChanged(const FOnAttributeChangeData& Data)
+{
+	if (OverheadWidget)
+	{
+		OverheadWidget->UpdateStats(AS->GetHealth(), AS->GetHealthMax(), AS->GetMana(), AS->GetManaMax());
+	}
+}
+
 UAbilitySystemComponent* AMD_CharacterBase::GetAbilitySystemComponent() const
 {
 	return ASC;
@@ -78,13 +80,34 @@ void AMD_CharacterBase::BeginPlay()
 
 EMDTeam AMD_CharacterBase::GetTeam() const
 {
-	UE_LOG(LogTemp, Warning, TEXT("GetTeam As PS valid? = %s"), PS ? TEXT("True") : TEXT("False"));
 	return PS ? PS->GetTeam() : EMDTeam::None;
 }
 
 FGenericTeamId AMD_CharacterBase::GetGenericTeamId() const
 {
 	return FGenericTeamId((uint8)GetTeam());
+}
+
+bool AMD_CharacterBase::IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const
+{
+	// 1. Базовая проверка (владелец всегда видит своего юнита)
+	if (Super::IsNetRelevantFor(RealViewer, ViewTarget, SrcLocation))
+	{
+		// Если это союзник — он всегда релевантен
+		const IMDTeamInterface* ViewerTeam = Cast<const IMDTeamInterface>(RealViewer);
+		if (ViewerTeam && ViewerTeam->GetTeam() == this->GetTeam()) return true;
+	}
+
+	// 2. Проверка через туман войны (для врагов)
+	const AFogOfWarManager* FogManager = AFogOfWarManager::Get(this, (uint8)GetTeam());
+	const AMD_PlayerController* PC = Cast<AMD_PlayerController>(RealViewer);
+	if (FogManager && PC && PC->GetHero())
+	{
+		const FIntPoint GridPos = FogManager->WorldToGrid(PC->GetHero()->GetActorLocation());
+		return FogManager->IsCellVisible(GridPos);
+	}
+
+	return false;
 }
 
 void AMD_CharacterBase::SetPlayerState(AMD_PlayerState* InPs)

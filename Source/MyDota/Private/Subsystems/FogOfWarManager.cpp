@@ -61,7 +61,7 @@ void AFogOfWarManager::OnRep_CompressedFog()
 		const bool bIsVisible = (CompressedFogData[WordIndex] >> BitIndex) & 1;
 
 		// Текущее состояние в буфере
-		const FColor TargetColor = bIsVisible ? FColor::White : FColor(127, 127, 127, 255);
+		const FColor TargetColor = bIsVisible ? FColor::White : FColor(127, 127, 127, UINT8_MAX);
 
 		// Для плавности можно делать Lerp между старым цветом и новым,
 		// но для начала просто записываем:
@@ -97,7 +97,7 @@ void AFogOfWarManager::TraceLine(FIntPoint Start, FIntPoint End, int32 MaxRange,
 		if (TerrainHeights[Index] > ViewerHeight) break;
 
 		// Помечаем ячейку как видимую
-		RawVisibilityData[Index] = 255;
+		RawVisibilityData[Index] = UINT8_MAX;
 
 		if (error > 0)
 		{
@@ -261,6 +261,42 @@ FIntPoint AFogOfWarManager::WorldToGrid(FVector Location) const
 	return FIntPoint(GridX, GridY);
 }
 
+FVector AFogOfWarManager::GridToWorld(int32 Index) const
+{
+	if (!RawVisibilityData.IsValidIndex(Index)) return FVector::ZeroVector;
+
+	// 1. Из индекса в координаты сетки
+	int32 GridX = Index % MapSize.X;
+	int32 GridY = Index / MapSize.X;
+
+	// 2. Из сетки в мировые координаты (относительно центра менеджера)
+	float WorldX = (GridX - (MapSize.X / 2.0f)) * GridCellSize;
+	float WorldY = (GridY - (MapSize.Y / 2.0f)) * GridCellSize;
+
+	// 3. Учитываем позицию самого менеджера в мире
+	FVector ManagerLoc = GetActorLocation();
+
+	// Z берем либо из запеченных высот, либо из позиции менеджера
+	float WorldZ = ManagerLoc.Z;
+	if (TerrainHeights.IsValidIndex(Index))
+	{
+		// Помнишь, мы делили на 128 при запекании? Теперь умножаем обратно.
+		WorldZ = TerrainHeights[Index] * TerrainHeightLevel;
+	}
+
+	return FVector(WorldX + ManagerLoc.X, WorldY + ManagerLoc.Y, WorldZ);
+}
+
+bool AFogOfWarManager::IsCellVisible(FIntPoint GridPos) const
+{
+	const int32 Index = GridPos.X + GridPos.Y * MapSize.X;
+	if (RawVisibilityData.IsValidIndex(Index))
+	{
+		return RawVisibilityData[Index] == 255;
+	}
+	return false;
+}
+
 FVector AFogOfWarManager::GridToWorld(FIntPoint GridCoords) const
 {
 	FVector WorldPos;
@@ -405,11 +441,10 @@ void AFogOfWarManager::UpdateLineOfSightCached(FVisionSource& Source)
 		}
 		Source.bIsDirty = false;
 	}
-
 	// Применяем кеш (даже если он не dirty, мы должны пометить ячейки как видимые в этом кадре)
-	for (int32 Index : Source.VisibleIndices)
+	for (auto Index : Source.VisibleIndices)
 	{
-		RawVisibilityData[Index] = 255;
+		RawVisibilityData[Index] = UINT8_MAX;
 	}
 }
 
