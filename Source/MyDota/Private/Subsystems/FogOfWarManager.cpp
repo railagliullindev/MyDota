@@ -9,11 +9,12 @@
 
 AFogOfWarManager::AFogOfWarManager()
 {
+	bReplicates = true;
+	bAlwaysRelevant = false;
+	NetPriority = 3.0f;
+
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = true;
-	bReplicates = true;
-	bAlwaysRelevant = true; // Важно! Теперь релевантность считаем сами
-	NetPriority = 3.0f;
 }
 
 AFogOfWarManager* AFogOfWarManager::Get(const UObject* WorldContextObject, uint8 TeamID)
