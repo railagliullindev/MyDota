@@ -57,6 +57,8 @@ public:
 
 	bool IsCellVisible(FIntPoint GridPos) const;
 
+	UMaterialInstanceDynamic* GetMaterialInstance();
+
 protected:
 
 	virtual void BeginPlay() override;

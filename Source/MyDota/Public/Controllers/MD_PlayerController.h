@@ -33,8 +33,8 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual EMDTeam GetTeam() const override;
 
-	UFUNCTION(BlueprintCallable, Category = "Draft")
-	void SelectHero(TSubclassOf<AMD_CharacterBase> InHeroClass);
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Draft")
+	void SelectHero(int32 InHeroID);
 
 	void SetHero(AMD_CharacterBase* InHero);
 	UFUNCTION()

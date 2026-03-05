@@ -12,6 +12,7 @@
 #include "Characters/MD_CharacterBase.h"
 #include "GameFrameworks/MD_PlayerState.h"
 #include "GameModes/MD_GameMode.h"
+#include "GameFrameworks/MD_GameState.h"
 #include "MyDota/MyDota.h"
 #include "Net/UnrealNetwork.h"
 
@@ -44,12 +45,13 @@ EMDTeam AMD_PlayerController::GetTeam() const
 	return EMDTeam::None;
 }
 
-void AMD_PlayerController::SelectHero(TSubclassOf<AMD_CharacterBase> InHeroClass)
+void AMD_PlayerController::SelectHero_Implementation(const int32 InHeroID)
 {
-	if (AMD_PlayerState* PS = GetPlayerState<AMD_PlayerState>())
-	{
-		PS->Server_SetSelectedHero(InHeroClass);
-	}
+	AMD_GameMode* GM = GetWorld()->GetAuthGameMode<AMD_GameMode>();
+	if (!GM) return;
+
+	UE_LOG(LogTemp, Log, TEXT("AMD_PlayerController::SelectHero_Implementation ok [%d]"), InHeroID);
+	GM->ProcessHeroSelection(this, InHeroID);
 }
 
 void AMD_PlayerController::SetHero(AMD_CharacterBase* InHero)

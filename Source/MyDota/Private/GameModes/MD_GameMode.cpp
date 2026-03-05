@@ -13,15 +13,14 @@ AMD_GameMode::AMD_GameMode()
 	PlayerControllerClass = AMD_PlayerController::StaticClass();
 	PlayerStateClass = AMD_PlayerState::StaticClass();
 	GameStateClass = AMD_GameState::StaticClass();
-	bIsTeamA = true;
 }
 
 void AMD_GameMode::BeginPlay()
 {
 	Super::BeginPlay();
 
-	MD_GameState = GetGameState<AMD_GameState>();
-	checkf(MD_GameState, TEXT("Game state is not AMD_GameState"));
+	GS = GetGameState<AMD_GameState>();
+	checkf(GS, TEXT("Game state is not AMD_GameState"));
 
 	SetMatchStage(EMathStage::WaitingForPlayers);
 
@@ -45,16 +44,37 @@ void AMD_GameMode::PostLogin(APlayerController* NewPlayer)
 	AMD_PlayerState* PS = NewPlayer->GetPlayerState<AMD_PlayerState>();
 	if (PS)
 	{
-		PS->Team = (GetNumPlayers() % 2 == 0) ? EMDTeam::Radiant : EMDTeam::Dire;
+		const EMDTeam SetTeam = (GetNumPlayers() % 2 == 0) ? EMDTeam::Radiant : EMDTeam::Dire;
+
+		GS->RegisterNewPlayer(PS->GetPlayerId(), (int32)SetTeam);
+		PS->Team = SetTeam;
 	}
 
 	SpawnCameraForPlayer(NewPlayer);
 }
 
+void AMD_GameMode::ProcessHeroSelection(const APlayerController* PC, int32 RequestedHeroId)
+{
+	if (!GS || !PC) return;
+
+	if (GS->IsHeroAlreadyPicked(RequestedHeroId)) return;
+
+	if (AMD_PlayerState* PS = PC->GetPlayerState<AMD_PlayerState>())
+	{
+		PS->HeroId = RequestedHeroId;
+		PS->OnRep_HeroId();
+
+		GS->RegisterHeroSelection(PS->GetPlayerId(), RequestedHeroId);
+
+		if (GS->AreAllHeroesSelected())
+		{
+			SetMatchStage(EMathStage::InProgress);
+		}
+	}
+}
+
 void AMD_GameMode::SetMatchStage(EMathStage NewStage)
 {
-	// if (MatchStage >= NewStage) return;
-
 	MatchStage = NewStage;
 
 	switch (MatchStage)
@@ -75,7 +95,7 @@ void AMD_GameMode::SetMatchStage(EMathStage NewStage)
 		case EMathStage::PostGame: UE_LOG(LogTemp, Warning, TEXT("AMD_GameMode::SetMatchStage POST GAME")); break;
 	}
 
-	MD_GameState->SetMatchStage(NewStage);
+	GS->SetMatchStage(NewStage);
 }
 
 void AMD_GameMode::WaitingForPlayers()

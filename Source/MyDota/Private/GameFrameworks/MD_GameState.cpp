@@ -5,6 +5,7 @@
 #include "AbilitySystemComponent.h"
 #include "GameplayTagContainer.h"
 #include "MD_GameplayTags.h"
+#include "MyDotaStructTypes.h"
 #include "AbilitySystem/MD_AbilitySystemComponent.h"
 #include "Characters/MD_CharacterBase.h"
 #include "Controllers/MD_PlayerController.h"
@@ -64,33 +65,71 @@ void AMD_GameState::SetMatchStage(EMathStage NewStage)
 	}
 }
 
-bool AMD_GameState::IsHeroAlreadyPicked(TSubclassOf<AMD_CharacterBase> InHeroClass) const
-{
-	return PickedHeroClasses.Contains(InHeroClass);
-}
-
 bool AMD_GameState::AreAllHeroesSelected() const
 {
-	const int32 PlayerCount = PlayerArray.Num();
-	const int32 PickedCount = PickedHeroClasses.Num();
-
-	return PlayerCount > 0 && PickedCount >= PlayerCount;
+	if (HasAuthority())
+	{
+		return HeroesInfo.FindByPredicate(
+				   [](const FMatchHeroesInfo& P)
+				   {
+					   return P.HeroId == -1 || P.PlayerId == -1;
+				   }) == nullptr;
+	}
+	return false;
 }
 
-void AMD_GameState::MarkHeroAsPicked(TSubclassOf<AMD_CharacterBase> InHeroClass)
+bool AMD_GameState::IsHeroAlreadyPicked(const int32 HeroIndex) const
 {
-	if (HasAuthority() && InHeroClass)
+	if (HasAuthority())
 	{
-		PickedHeroClasses.AddUnique(InHeroClass);
-		FString RoleString = HasAuthority() ? TEXT("ListenServer-Host") : TEXT("Remote-Client");
-		UE_LOG(LogTemp, Warning, TEXT("[%s] Герой %s теперь занят!"), *RoleString, *InHeroClass->GetName());
-
-		if (AreAllHeroesSelected())
-		{
-			if (AMD_GameMode* GM = Cast<AMD_GameMode>(GetWorld()->GetAuthGameMode()))
-			{
-				GM->SetMatchStage(EMathStage::InProgress);
-			}
-		}
+		return HeroesInfo.FindByPredicate(
+				   [HeroIndex](const FMatchHeroesInfo& P)
+				   {
+					   return P.HeroId == HeroIndex;
+				   }) != nullptr;
 	}
+	return false;
+}
+
+void AMD_GameState::RegisterHeroSelection(const int32 InPlayerId, const int32 HeroId)
+{
+	if (!HasAuthority()) return;
+
+	FMatchHeroesInfo* Info = HeroesInfo.FindByPredicate(
+		[InPlayerId](const FMatchHeroesInfo& P)
+		{
+			return P.PlayerId == InPlayerId;
+		});
+
+	if (Info)
+	{
+		Info->HeroId = HeroId;
+		UE_LOG(LogTemp, Log, TEXT("AMD_GameState::RegisterHeroSelection ok [%d]"), HeroId);
+	}
+	MARK_PROPERTY_DIRTY_FROM_NAME(AMD_GameState, HeroesInfo, this);
+}
+
+void AMD_GameState::RegisterNewPlayer(const int32 PlayerId, const int32 TeamId)
+{
+	if (!HasAuthority()) return;
+
+	FMatchHeroesInfo* Info = HeroesInfo.FindByPredicate(
+		[PlayerId](const FMatchHeroesInfo& P)
+		{
+			return P.PlayerId == PlayerId;
+		});
+
+	if (Info)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Player with %d id has registered"), PlayerId);
+		return;
+	}
+
+	FMatchHeroesInfo RegisteredHeroesInfo;
+
+	RegisteredHeroesInfo.PlayerId = PlayerId;
+	RegisteredHeroesInfo.TeamId = TeamId;
+
+	HeroesInfo.Add(RegisteredHeroesInfo);
+	MARK_PROPERTY_DIRTY_FROM_NAME(AMD_GameState, HeroesInfo, this);
 }

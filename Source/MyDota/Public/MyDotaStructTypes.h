@@ -73,3 +73,18 @@ enum class EMDTeam : uint8
 	Radiant,
 	Neutral
 };
+
+USTRUCT(BlueprintType)
+struct FMatchHeroesInfo
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	int32 PlayerId = -1;
+
+	UPROPERTY()
+	int32 TeamId = -1;
+
+	UPROPERTY()
+	int32 HeroId = -1;
+};

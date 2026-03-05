@@ -35,6 +35,8 @@ public:
 	virtual void BeginPlay() override;
 	virtual void PostLogin(APlayerController* NewPlayer) override;
 
+	void ProcessHeroSelection(const APlayerController* PC, int32 RequestedHeroId);
+
 	void SetMatchStage(EMathStage NewStage);
 
 protected:
@@ -53,17 +55,15 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Classes")
 	TSubclassOf<AFogOfWarManager> FogManagerClass;
 
-	EMathStage MatchStage;
-
 	UPROPERTY()
-	AMD_GameState* MD_GameState;
+	AMD_GameState* GS;
 
 private:
-
-	bool bIsTeamA;
 
 	UPROPERTY()
 	AFogOfWarManager* RadiantFogManager;
 	UPROPERTY()
 	AFogOfWarManager* DireFogManager;
+
+	EMathStage MatchStage;
 };

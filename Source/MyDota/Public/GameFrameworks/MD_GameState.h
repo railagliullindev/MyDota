@@ -7,6 +7,7 @@
 #include "GameModes/MD_GameMode.h"
 #include "MD_GameState.generated.h"
 
+struct FMatchHeroesInfo;
 class AMD_CharacterBase;
 /**
  *
@@ -28,13 +29,19 @@ public:
 	UPROPERTY(ReplicatedUsing = OnRep_MatchStage, BlueprintReadOnly, Category = "MatchStage")
 	EMathStage MathStage;
 
+	UPROPERTY(Replicated)
+	TArray<FMatchHeroesInfo> HeroesInfo;
+
 	// Установка стадии матча
 	void SetMatchStage(EMathStage NewStage);
 
 	/** Draft  */
-	bool IsHeroAlreadyPicked(TSubclassOf<AMD_CharacterBase> InHeroClass) const;
 	bool AreAllHeroesSelected() const;
-	void MarkHeroAsPicked(TSubclassOf<AMD_CharacterBase> InHeroClass);
+
+	bool IsHeroAlreadyPicked(const int32 HeroIndex) const;
+	void RegisterHeroSelection(const int32 InPlayerId, const int32 HeroId);
+
+	void RegisterNewPlayer(const int32 PlayerId, const int32 TeamId);
 
 protected:
 

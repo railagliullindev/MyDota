@@ -9,13 +9,14 @@
 #include "Interfaces/MDTeamInterface.h"
 #include "MD_PlayerState.generated.h"
 
+class UMDHeroInfoDataAsset;
 class UMD_AbilitySystemComponent;
 class UMD_AttributeSet;
 class AMD_CharacterBase;
 /**
  *
  */
-UCLASS()
+UCLASS(Abstract, HideDropdown)
 class MYDOTA_API AMD_PlayerState : public APlayerState, public IAbilitySystemInterface, public IMDTeamInterface
 {
 	GENERATED_BODY()
@@ -24,31 +25,40 @@ public:
 
 	AMD_PlayerState();
 
+	// ~ begin IAbilitySystemInterface Interface
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+	// ~ end IAbilitySystemInterface Interface
+
+	// ~ begin IMDTeamInterface Interface
+	virtual EMDTeam GetTeam() const override;
+	// ~ end IMDTeamInterface Interface
 
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
 	UMD_AttributeSet* GetAttributeSet() const;
 
-	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Draft")
+	UFUNCTION()
+	void OnRep_HeroId();
+
+	UPROPERTY(ReplicatedUsing = OnRep_Team, BlueprintReadOnly)
+	EMDTeam Team = EMDTeam::None;
+
+	UPROPERTY(ReplicatedUsing = OnRep_HeroId, BlueprintReadOnly)
+	int32 HeroId = -1;
+
 	TSubclassOf<AMD_CharacterBase> SelectedHeroClass;
 
-	UFUNCTION(Server, Reliable, WithValidation)
-	void Server_SetSelectedHero(TSubclassOf<AMD_CharacterBase> InHeroClass);
-
-	UPROPERTY(ReplicatedUsing = OnRep_Team, BlueprintReadOnly, Category = "Team")
-	EMDTeam Team = EMDTeam::None;
+protected:
 
 	UFUNCTION()
 	void OnRep_Team();
-
-	virtual EMDTeam GetTeam() const override;
-
-protected:
 
 	UPROPERTY(VisibleAnywhere, Category = "GAS")
 	UMD_AbilitySystemComponent* AbilitySystemComponent;
 
 	UPROPERTY(VisibleAnywhere, Category = "GAS")
 	UMD_AttributeSet* AttributeSet;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Setup")
+	UMDHeroInfoDataAsset* HeroInfoData;
 };

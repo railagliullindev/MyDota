@@ -313,6 +313,11 @@ bool AFogOfWarManager::IsCellVisible(FIntPoint GridPos) const
 	return false;
 }
 
+UMaterialInstanceDynamic* AFogOfWarManager::GetMaterialInstance()
+{
+	return FogMaterialInstance;
+}
+
 FVector AFogOfWarManager::GridToWorld(FIntPoint GridCoords) const
 {
 	FVector WorldPos;
