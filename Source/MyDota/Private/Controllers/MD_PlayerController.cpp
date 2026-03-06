@@ -12,9 +12,9 @@
 #include "Characters/MD_CharacterBase.h"
 #include "GameFrameworks/MD_PlayerState.h"
 #include "GameModes/MD_GameMode.h"
-#include "GameFrameworks/MD_GameState.h"
 #include "MyDota/MyDota.h"
 #include "Net/UnrealNetwork.h"
+#include "Subsystems/FogOfWarManager.h"
 
 AMD_PlayerController::AMD_PlayerController()
 {
@@ -91,6 +91,7 @@ void AMD_PlayerController::SetMatchMode_Implementation(EMathStage InMatchStage)
 		case EMathStage::InProgress:
 			if (ULocalPlayer* LocalPlayer = GetLocalPlayer())
 			{
+				UE_LOG(LogTemp, Warning, TEXT("AMD_PlayerController::SetMatchMode_Implementation"));
 				if (UEnhancedInputLocalPlayerSubsystem* Subsystem = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
 				{
 					if (ClickMoveMappingContext)
@@ -98,11 +99,25 @@ void AMD_PlayerController::SetMatchMode_Implementation(EMathStage InMatchStage)
 						Subsystem->AddMappingContext(ClickMoveMappingContext, 0);
 					}
 				}
+
+				AFogOfWarManager* FogOfWarManager = AFogOfWarManager::Get(GetWorld(), (uint8)GetTeam());
+				UE_LOG(LogTemp, Warning, TEXT("AMD_PlayerController:: FogOfWarManager is valid %p with %hhd"), FogOfWarManager, GetTeam());
+				if (FogOfWarManager)
+				{
+					UE_LOG(LogTemp, Warning, TEXT("AMD_PlayerController:: BIND ON  OnUnitVisibilityChanged"));
+					FogOfWarManager->OnUnitVisibilityChanged.AddUObject(this, &AMD_PlayerController::OnUnitVisibilityChanged);
+				}
 			}
 			break;
 		case EMathStage::PostGame: break;
 		default: break;
 	}
+}
+
+void AMD_PlayerController::OnUnitVisibilityChanged(AActor* Actor, bool bArg)
+{
+	// if (Actor->GetOwner() != this) return;
+	Actor->SetActorHiddenInGame(!bArg);
 }
 
 void AMD_PlayerController::BeginPlay()

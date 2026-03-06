@@ -10,6 +10,7 @@
 #include "Interfaces/MDTeamInterface.h"
 #include "MD_CharacterBase.generated.h"
 
+class UFogVisibilityComponent;
 class UGameplayEffect;
 struct FGameplayEffectSpecHandle;
 struct FOnAttributeChangeData;
@@ -31,6 +32,7 @@ public:
 
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	virtual EMDTeam GetTeam() const override;
 	virtual FGenericTeamId GetGenericTeamId() const override;
@@ -53,6 +55,8 @@ public:
 
 	// Функция-фабрика: создает спеку на сервере
 	FGameplayEffectSpecHandle MakeDamageSpec(TSubclassOf<UGameplayEffect> EffectClass, float Level);
+
+	bool IsOwnedByLocalPlayer(AActor* InActor) const;
 
 protected:
 
@@ -89,4 +93,7 @@ protected:
 
 	void InitHealthBar();
 	void OnValueChanged(const FOnAttributeChangeData& Data);
+
+	void RegisterUnit();
+	void UnRegisterUnit();
 };

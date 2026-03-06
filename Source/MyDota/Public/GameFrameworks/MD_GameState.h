@@ -21,27 +21,29 @@ public:
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-	// Массив выбранных классов
-	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Draft")
-	TArray<TSubclassOf<AMD_CharacterBase>> PickedHeroClasses;
+	// Установка стадии матча
+	void SetMatchStage(EMathStage NewStage);
 
-	// Стадия матча
+	/** New player */
+	void RegisterNewPlayer(const int32 PlayerId, const int32 TeamId);
+
+	/** Draft  */
+	bool AreAllHeroesSelected() const;
+	bool IsHeroAlreadyPicked(const int32 HeroIndex) const;
+	void RegisterHeroSelection(const int32 InPlayerId, const int32 HeroId);
+
+	void RegisterUnit(AActor* Unit);
+	void UnregisterUnit(AActor* Unit);
+
+	/** Стадия матча */
 	UPROPERTY(ReplicatedUsing = OnRep_MatchStage, BlueprintReadOnly, Category = "MatchStage")
 	EMathStage MathStage;
 
 	UPROPERTY(Replicated)
 	TArray<FMatchHeroesInfo> HeroesInfo;
 
-	// Установка стадии матча
-	void SetMatchStage(EMathStage NewStage);
-
-	/** Draft  */
-	bool AreAllHeroesSelected() const;
-
-	bool IsHeroAlreadyPicked(const int32 HeroIndex) const;
-	void RegisterHeroSelection(const int32 InPlayerId, const int32 HeroId);
-
-	void RegisterNewPlayer(const int32 PlayerId, const int32 TeamId);
+	UPROPERTY()
+	TArray<AActor*> AllUnits;
 
 protected:
 

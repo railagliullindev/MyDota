@@ -7,9 +7,8 @@
 #include "Subsystems/WorldSubsystem.h"
 #include "FogOfWarManager.generated.h"
 
-/**
- *
- */
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnUnitVisibilityChanged, AActor*, const bool);
+
 UCLASS()
 class MYDOTA_API AFogOfWarManager : public AActor
 {
@@ -27,8 +26,10 @@ public:
 
 	void InitFogManager();
 
-	UPROPERTY()
+	UPROPERTY(Replicated)
 	EMDTeam AssignedTeamID;
+
+	FOnUnitVisibilityChanged OnUnitVisibilityChanged;
 
 	/** Размер одной ячейки в юнитах UE */
 	UPROPERTY(EditDefaultsOnly, Category = "Fog Settings")
@@ -56,6 +57,8 @@ public:
 	FVector GridToWorld(int32 Index) const;
 
 	bool IsCellVisible(FIntPoint GridPos) const;
+
+	bool IsCellVisibleOnClient(FIntPoint GridPos) const;
 
 	UMaterialInstanceDynamic* GetMaterialInstance();
 
@@ -165,4 +168,8 @@ private:
 	float FogFadeSpeed = 3.0f;
 
 	bool bInitialized = false;
+
+	TMap<int32, bool> LastVisibilityState;
+
+	void UpdateUnitVisibilityState(AActor* InActor);
 };

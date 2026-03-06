@@ -47,6 +47,7 @@ public:
 
 	UFUNCTION(Client, Reliable, Category = "MatchStage")
 	void SetMatchMode(EMathStage InMatchStage);
+	void OnUnitVisibilityChanged(AActor* Actor, bool bArg);
 
 protected:
 

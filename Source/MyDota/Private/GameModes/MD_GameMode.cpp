@@ -154,6 +154,7 @@ void AMD_GameMode::InProgress()
 
 			if (NewHero)
 			{
+				NewHero->SetOwner(PC);
 				NewHero->SetPlayerState(PS);
 				PC->SetHero(NewHero);
 			}

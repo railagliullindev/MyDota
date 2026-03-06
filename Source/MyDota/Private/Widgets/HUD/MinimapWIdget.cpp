@@ -56,6 +56,10 @@ void UMinimapWIdget::InitHeroIcons()
 {
 	AMD_GameState* GS = GetWorld()->GetGameState<AMD_GameState>();
 	if (!GS) return;
+
+	for (const auto& Info : GS->HeroesInfo)
+	{
+	}
 }
 
 FVector2D UMinimapWIdget::GetNormalizedPosition(const FVector& WorldLocation)

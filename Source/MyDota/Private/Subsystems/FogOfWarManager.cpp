@@ -3,6 +3,7 @@
 #include "Subsystems/FogOfWarManager.h"
 
 #include "EngineUtils.h"
+#include "GameFrameworks/MD_GameState.h"
 #include "Interfaces/MDTeamInterface.h"
 #include "MyDota/MyDota.h"
 #include "Net/UnrealNetwork.h"
@@ -22,12 +23,15 @@ AFogOfWarManager* AFogOfWarManager::Get(const UObject* WorldContextObject, uint8
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
 	if (!World) return nullptr;
 
+	// UE_LOG(LogTemp, Warning, TEXT("AFogOfWarManager::Get try find team id %hhu"), TeamID);
 	for (TActorIterator<AFogOfWarManager> It(World); It; ++It)
 	{
-		// На сервере ищем менеджер конкретной команды
-		// На клиенте AssignedTeamID совпадет только у "своего" менеджера (благодаря IsNetRelevantFor)
+		// UE_LOG(LogTemp, Warning, TEXT("AFogOfWarManager::Get It %hhu"), It->AssignedTeamID);
+		//   На сервере ищем менеджер конкретной команды
+		//   На клиенте AssignedTeamID совпадет только у "своего" менеджера (благодаря IsNetRelevantFor)
 		if ((uint8)It->AssignedTeamID == TeamID || TeamID == -1)
 		{
+			// UE_LOG(LogTemp, Warning, TEXT("AFogOfWarManager::Get Find"));
 			return *It;
 		}
 	}
@@ -71,6 +75,17 @@ void AFogOfWarManager::OnRep_CompressedFog()
 	}
 
 	UpdateTexture();
+
+	if (AMD_GameState* GS = GetWorld()->GetGameState<AMD_GameState>())
+	{
+		for (auto Unit : GS->AllUnits)
+		{
+			if (Unit)
+			{
+				UpdateUnitVisibilityState(Unit);
+			}
+		}
+	}
 }
 
 void AFogOfWarManager::TraceLine(FIntPoint Start, FIntPoint End, int32 MaxRange, uint8 ViewerHeight)
@@ -251,6 +266,25 @@ uint8 AFogOfWarManager::GetTerrainHeight(FIntPoint GridCoords) const
 	return 0;
 }
 
+void AFogOfWarManager::UpdateUnitVisibilityState(AActor* InActor)
+{
+	const FIntPoint GridPos = WorldToGrid(InActor->GetActorLocation());
+	const bool bIsVisible = IsCellVisibleOnClient(GridPos);
+	const int32 Id = InActor->GetUniqueID();
+
+	if (AssignedTeamID == EMDTeam::Radiant)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("%s (ID = %d) is visible %hs"), *InActor->GetName(), Id, bIsVisible ? "true" : "false");
+		DrawDebugPoint(GetWorld(), InActor->GetActorLocation(), 5.f, FColor::Yellow, false, 2.f);
+	}
+
+	if (!LastVisibilityState.Contains(Id) || LastVisibilityState[Id] != bIsVisible)
+	{
+		LastVisibilityState.Emplace(Id, bIsVisible);
+		OnUnitVisibilityChanged.Broadcast(InActor, bIsVisible);
+	}
+}
+
 FIntPoint AFogOfWarManager::WorldToGrid(FVector Location) const
 {
 	int32 GridX = FMath::FloorToInt(Location.X / GridCellSize) + (MapSize.X / 2);
@@ -313,6 +347,57 @@ bool AFogOfWarManager::IsCellVisible(FIntPoint GridPos) const
 	return false;
 }
 
+bool AFogOfWarManager::IsCellVisibleOnClient(FIntPoint GridPos) const
+{
+	UE_LOG(LogTemp, Warning, TEXT("Pixel buffer N = %d"), PixelBuffer.Num());
+	for (int i = 0; i < TargetFogGoal.Num(); ++i)
+	{
+		int32 GridX = i % MapSize.X;
+		int32 GridY = i / MapSize.X;
+
+		// 2. Из сетки в мировые координаты (относительно центра менеджера)
+		float WorldX = (GridX - (MapSize.X / 2.0f)) * GridCellSize;
+		float WorldY = (GridY - (MapSize.Y / 2.0f)) * GridCellSize;
+
+		// 3. Учитываем позицию самого менеджера в мире
+		FVector ManagerLoc = GetActorLocation();
+
+		// Z берем либо из запеченных высот, либо из позиции менеджера
+		float WorldZ = ManagerLoc.Z;
+		if (TerrainHeights.IsValidIndex(i))
+		{
+			// Помнишь, мы делили на 128 при запекании? Теперь умножаем обратно.
+			WorldZ = TerrainHeights[i] * TerrainHeightLevel;
+		}
+
+		FVector Loc = FVector(WorldX + ManagerLoc.X, WorldY + ManagerLoc.Y, WorldZ);
+
+		DrawDebugPoint(GetWorld(), Loc + FVector(0, 0, 250), 5.f, (TargetFogGoal[i] == 1) ? FColor::White : FColor::Red, false, 1.f);
+	}
+
+	const int32 Index = GridPos.X + GridPos.Y * MapSize.X;
+	if (TargetFogGoal.IsValidIndex(Index))
+	{
+		if (false)
+		{
+			if (AssignedTeamID == EMDTeam::Dire)
+			{
+				for (int i = 0; i < RawVisibilityData.Num(); ++i)
+				{
+					const FVector Loc = GridToWorld(i);
+
+					DrawDebugPoint(GetWorld(), Loc + FVector(0, 0, 100.f), 5.f, (RawVisibilityData[i] == 255) ? FColor::Green : FColor::Red, false, 1.f);
+				}
+				const FVector Loc2 = GridToWorld(GridPos);
+				DrawDebugPoint(GetWorld(), Loc2 + FVector(0, 0, 250.f), 50.f, FColor::Blue, false, 1.f);
+			}
+		}
+
+		return TargetFogGoal[Index] == 1;
+	}
+	return false;
+}
+
 UMaterialInstanceDynamic* AFogOfWarManager::GetMaterialInstance()
 {
 	return FogMaterialInstance;
@@ -363,6 +448,19 @@ void AFogOfWarManager::CalculateFogOfWar()
 			// UpdateLineOfSight(Source.SourceActor->GetActorLocation(), Source.Radius);
 		}
 	}
+
+	// 3.5 Временно
+	// Проверка всех AllUnits
+	/*if (AMD_GameState* GS = GetWorld()->GetGameState<AMD_GameState>())
+	{
+		for (auto Unit : GS->AllUnits)
+		{
+			if (Unit)
+			{
+				UpdateUnitVisibilityState(Unit);
+			}
+		}
+	}*/
 
 	// 4. Сжатие данных в биты для репликации
 	// Это автоматически вызовет OnRep_CompressedFog у клиентов

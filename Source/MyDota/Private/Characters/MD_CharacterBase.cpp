@@ -11,6 +11,7 @@
 #include "DataAssets/StartupData/DataAsset_HeroStartupData.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
+#include "GameFrameworks/MD_GameState.h"
 #include "GameFrameworks/MD_PlayerState.h"
 #include "MyDota/MyDota.h"
 #include "Net/UnrealNetwork.h"
@@ -67,6 +68,37 @@ void AMD_CharacterBase::OnValueChanged(const FOnAttributeChangeData& Data)
 	}
 }
 
+void AMD_CharacterBase::RegisterUnit()
+{
+	if (AMD_GameState* GS = GetWorld()->GetGameState<AMD_GameState>())
+	{
+		GS->RegisterUnit(this);
+	}
+}
+
+void AMD_CharacterBase::UnRegisterUnit()
+{
+	if (AMD_GameState* GS = GetWorld()->GetGameState<AMD_GameState>())
+	{
+		GS->UnregisterUnit(this);
+	}
+}
+
+bool AMD_CharacterBase::IsOwnedByLocalPlayer(AActor* InActor) const
+{
+	if (!InActor) return false;
+
+	AController* MyPC = GetWorld()->GetFirstPlayerController();
+	if (InActor->GetOwner())
+	{
+		return MyPC && InActor->GetOwner() == MyPC;
+	}
+	else
+	{
+		return false;
+	}
+}
+
 UAbilitySystemComponent* AMD_CharacterBase::GetAbilitySystemComponent() const
 {
 	return ASC;
@@ -76,7 +108,15 @@ void AMD_CharacterBase::BeginPlay()
 {
 	Super::BeginPlay();
 
+	RegisterUnit();
+
 	InitHealthBar();
+}
+
+void AMD_CharacterBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	UnRegisterUnit();
+	Super::EndPlay(EndPlayReason);
 }
 
 EMDTeam AMD_CharacterBase::GetTeam() const
@@ -214,6 +254,8 @@ FGameplayEffectSpecHandle AMD_CharacterBase::MakeDamageSpec(TSubclassOf<UGamepla
 // CLIENT only
 void AMD_CharacterBase::OnRep_PlayerState()
 {
+	UE_LOG(LogTemp, Warning, TEXT("[ %s ] OnRep_PlayerState"), *GetName());
+
 	if (!PS) return;
 	Super::OnRep_PlayerState();
 
@@ -224,5 +266,4 @@ void AMD_CharacterBase::OnRep_Owner()
 {
 	Super::OnRep_Owner();
 	InitAbilitySystem();
-	// InitHealthBar();
 }

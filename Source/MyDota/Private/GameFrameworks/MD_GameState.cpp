@@ -17,7 +17,6 @@ void AMD_GameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLif
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME(AMD_GameState, PickedHeroClasses);
 	DOREPLIFETIME(AMD_GameState, MathStage);
 }
 
@@ -107,6 +106,16 @@ void AMD_GameState::RegisterHeroSelection(const int32 InPlayerId, const int32 He
 		UE_LOG(LogTemp, Log, TEXT("AMD_GameState::RegisterHeroSelection ok [%d]"), HeroId);
 	}
 	MARK_PROPERTY_DIRTY_FROM_NAME(AMD_GameState, HeroesInfo, this);
+}
+
+void AMD_GameState::RegisterUnit(AActor* Unit)
+{
+	AllUnits.Add(Unit);
+}
+
+void AMD_GameState::UnregisterUnit(AActor* Unit)
+{
+	AllUnits.Remove(Unit);
 }
 
 void AMD_GameState::RegisterNewPlayer(const int32 PlayerId, const int32 TeamId)
