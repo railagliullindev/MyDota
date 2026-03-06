@@ -75,17 +75,6 @@ void AFogOfWarManager::OnRep_CompressedFog()
 	}
 
 	UpdateTexture();
-
-	if (AMD_GameState* GS = GetWorld()->GetGameState<AMD_GameState>())
-	{
-		for (auto Unit : GS->AllUnits)
-		{
-			if (Unit)
-			{
-				UpdateUnitVisibilityState(Unit);
-			}
-		}
-	}
 }
 
 void AFogOfWarManager::TraceLine(FIntPoint Start, FIntPoint End, int32 MaxRange, uint8 ViewerHeight)
@@ -272,12 +261,6 @@ void AFogOfWarManager::UpdateUnitVisibilityState(AActor* InActor)
 	const bool bIsVisible = IsCellVisibleOnClient(GridPos);
 	const int32 Id = InActor->GetUniqueID();
 
-	if (AssignedTeamID == EMDTeam::Radiant)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("%s (ID = %d) is visible %hs"), *InActor->GetName(), Id, bIsVisible ? "true" : "false");
-		DrawDebugPoint(GetWorld(), InActor->GetActorLocation(), 5.f, FColor::Yellow, false, 2.f);
-	}
-
 	if (!LastVisibilityState.Contains(Id) || LastVisibilityState[Id] != bIsVisible)
 	{
 		LastVisibilityState.Emplace(Id, bIsVisible);
@@ -349,8 +332,7 @@ bool AFogOfWarManager::IsCellVisible(FIntPoint GridPos) const
 
 bool AFogOfWarManager::IsCellVisibleOnClient(FIntPoint GridPos) const
 {
-	UE_LOG(LogTemp, Warning, TEXT("Pixel buffer N = %d"), PixelBuffer.Num());
-	for (int i = 0; i < TargetFogGoal.Num(); ++i)
+	/*for (int i = 0; i < TargetFogGoal.Num(); ++i)
 	{
 		int32 GridX = i % MapSize.X;
 		int32 GridY = i / MapSize.X;
@@ -373,7 +355,7 @@ bool AFogOfWarManager::IsCellVisibleOnClient(FIntPoint GridPos) const
 		FVector Loc = FVector(WorldX + ManagerLoc.X, WorldY + ManagerLoc.Y, WorldZ);
 
 		DrawDebugPoint(GetWorld(), Loc + FVector(0, 0, 250), 5.f, (TargetFogGoal[i] == 1) ? FColor::White : FColor::Red, false, 1.f);
-	}
+	}*/
 
 	const int32 Index = GridPos.X + GridPos.Y * MapSize.X;
 	if (TargetFogGoal.IsValidIndex(Index))
@@ -448,19 +430,6 @@ void AFogOfWarManager::CalculateFogOfWar()
 			// UpdateLineOfSight(Source.SourceActor->GetActorLocation(), Source.Radius);
 		}
 	}
-
-	// 3.5 Временно
-	// Проверка всех AllUnits
-	/*if (AMD_GameState* GS = GetWorld()->GetGameState<AMD_GameState>())
-	{
-		for (auto Unit : GS->AllUnits)
-		{
-			if (Unit)
-			{
-				UpdateUnitVisibilityState(Unit);
-			}
-		}
-	}*/
 
 	// 4. Сжатие данных в биты для репликации
 	// Это автоматически вызовет OnRep_CompressedFog у клиентов
@@ -649,6 +618,18 @@ void AFogOfWarManager::Tick(float DeltaSeconds)
 		if (bChanged)
 		{
 			UpdateTexture();
+		}
+
+		// Проверка всех AllUnits
+		if (AMD_GameState* GS = GetWorld()->GetGameState<AMD_GameState>())
+		{
+			for (auto Unit : GS->AllUnits)
+			{
+				if (Unit)
+				{
+					UpdateUnitVisibilityState(Unit);
+				}
+			}
 		}
 	}
 }

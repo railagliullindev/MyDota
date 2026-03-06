@@ -2,6 +2,8 @@
 
 #include "Widgets/HUD/MinimapWIdget.h"
 
+#include "Components/Image.h"
+#include "Controllers/MD_PlayerController.h"
 #include "GameFrameworks/MD_GameState.h"
 #include "GameFrameworks/MD_PlayerState.h"
 #include "Subsystems/FogOfWarManager.h"
@@ -11,10 +13,21 @@ void UMinimapWIdget::NativeConstruct()
 	Super::NativeConstruct();
 
 	CachedFogManager();
+
+	AMD_PlayerController* PC = Cast<AMD_PlayerController>(GetOwningPlayer());
+	if (!PC) return;
+	if (AFogOfWarManager* Fog = AFogOfWarManager::Get(this, (uint8)PC->GetTeam()))
+	{
+		if (Fog->GetFogTexture())
+		{
+			InitMinimapFog(Fog->GetFogTexture());
+		}
+	}
 }
 
 void UMinimapWIdget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
+
 	for (auto& Icon : HeroIcons)
 	{
 		AActor* Hero = Icon.Key;
@@ -44,8 +57,6 @@ void UMinimapWIdget::CachedFogManager()
 		FogManager = AFogOfWarManager::Get(this, (uint8)PS->Team);
 		if (FogManager)
 		{
-			auto* FogMaterialInstance = FogManager->GetMaterialInstance();
-
 			MapSize = FogManager->MapSize;
 			GridCellSize = FogManager->GridCellSize;
 		}
@@ -81,4 +92,16 @@ FVector2D UMinimapWIdget::GetNormalizedPosition(const FVector& WorldLocation)
 
 	// Зажимаем в 0..1, чтобы иконки не вылетали за рамки миникарты
 	return FVector2D(FMath::Clamp(NormX, 0.0f, 1.0f), FMath::Clamp(NormY, 0.0f, 1.0f));
+}
+
+void UMinimapWIdget::InitMinimapFog(UTexture2D* InFogTexture)
+{
+	UE_LOG(LogTemp, Warning, TEXT("UMinimapWIdget::InitMinimapFog"));
+	if (MinimapMaterial && InFogTexture)
+	{
+		MinimapMID = UMaterialInstanceDynamic::Create(MinimapMaterial, this);
+		MinimapMID->SetTextureParameterValue(FName("FogMask"), InFogTexture);
+
+		MinimapImage->SetBrushFromMaterial(MinimapMID);
+	}
 }

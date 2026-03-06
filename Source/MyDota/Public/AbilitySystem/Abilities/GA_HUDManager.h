@@ -7,7 +7,7 @@
 #include "GA_HUDManager.generated.h"
 
 class UMD_AttributeSet;
-class UMD_MainHUD;
+class UMD_HeroDashboard;
 /**
  *
  */
@@ -21,7 +21,7 @@ public:
 	UGA_HUDManager();
 
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
-	TSubclassOf<UMD_MainHUD> MainHUDClass;
+	TSubclassOf<UUserWidget> WidgetClass;
 
 protected:
 
@@ -31,19 +31,5 @@ protected:
 		bool bWasCancelled) override;
 
 	UPROPERTY()
-	UMD_MainHUD* MainHUD;
-
-	void OnHealthChanged(const FOnAttributeChangeData& Data);
-	void OnManaChanged(const FOnAttributeChangeData& Data);
-
-private:
-
-	UPROPERTY()
-	UAbilitySystemComponent* ASC;
-
-	UPROPERTY()
-	const UMD_AttributeSet* AS;
-
-	FDelegateHandle HealthChangedDelegateHandle;
-	FDelegateHandle ManaChangedDelegateHandle;
+	UUserWidget* Widget;
 };

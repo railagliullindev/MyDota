@@ -62,6 +62,11 @@ public:
 
 	UMaterialInstanceDynamic* GetMaterialInstance();
 
+	UTexture2D* GetFogTexture() const
+	{
+		return FogTexture;
+	};
+
 protected:
 
 	virtual void BeginPlay() override;
