@@ -32,7 +32,7 @@ protected:
 	UPROPERTY()
 	AFogOfWarManager* FogManager;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY()
 	FVector2D MinimapSize;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Setup")
