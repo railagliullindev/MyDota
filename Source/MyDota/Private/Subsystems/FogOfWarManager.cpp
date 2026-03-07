@@ -223,6 +223,21 @@ void AFogOfWarManager::UpdateUnitVisibilityState(AActor* InActor)
 	}
 }
 
+EMDTeam AFogOfWarManager::GetCachedEnemyTeam()
+{
+	if (EnemyTeamCached == EMDTeam::None && AssignedTeamID != EMDTeam::None)
+	{
+		EnemyTeamCached = (AssignedTeamID == EMDTeam::Radiant) ? EMDTeam::Dire : EMDTeam::Radiant;
+	}
+
+	if (EnemyTeamCached == EMDTeam::None)
+	{
+		UE_LOG(LogFogOfWar, Error, TEXT("GetCachedEnemyTeam: AssignedTeamID is None"));
+	}
+
+	return EnemyTeamCached;
+}
+
 FIntPoint AFogOfWarManager::WorldToGrid(const FVector& Location) const
 {
 	int32 GridX = FMath::FloorToInt(Location.X / GridCellSize) + (MapSize.X / 2);
@@ -490,7 +505,8 @@ void AFogOfWarManager::Tick(float DeltaSeconds)
 		// Проверка всех AllUnits
 		if (AMD_GameState* GS = GetWorld()->GetGameState<AMD_GameState>())
 		{
-			for (const auto Unit : GS->AllUnits)
+			const TArray<AActor*>& Units = GS->GetUnitsInTeam(GetCachedEnemyTeam());
+			for (const auto Unit : Units)
 			{
 				if (Unit)
 				{

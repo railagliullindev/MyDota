@@ -50,13 +50,11 @@ void AMD_PlayerController::SelectHero_Implementation(const int32 InHeroID)
 	AMD_GameMode* GM = GetWorld()->GetAuthGameMode<AMD_GameMode>();
 	if (!GM) return;
 
-	UE_LOG(LogTemp, Log, TEXT("AMD_PlayerController::SelectHero_Implementation ok [%d]"), InHeroID);
 	GM->ProcessHeroSelection(this, InHeroID);
 }
 
 void AMD_PlayerController::SetHero(AMD_CharacterBase* InHero)
 {
-	UE_LOG(LogTemp, Warning, TEXT("SetHero"));
 	if (HasAuthority())
 	{
 		Hero = InHero;
@@ -67,17 +65,6 @@ void AMD_PlayerController::SetHero(AMD_CharacterBase* InHero)
 
 void AMD_PlayerController::OnRep_Hero()
 {
-	if (IsLocalController())
-	{
-		FString RoleString = HasAuthority() ? TEXT("ListenServer-Host") : TEXT("Remote-Client");
-
-		if (Hero)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("[%s] Герой успешно привязан к контроллеру: %s"), *RoleString, *Hero->GetName());
-
-			// ТУТ инициализируй HUD или камеру
-		}
-	}
 }
 
 void AMD_PlayerController::SetMatchMode_Implementation(EMathStage InMatchStage)
@@ -89,9 +76,8 @@ void AMD_PlayerController::SetMatchMode_Implementation(EMathStage InMatchStage)
 		case EMathStage::Draft: break;
 		case EMathStage::PreGame: break;
 		case EMathStage::InProgress:
-			if (ULocalPlayer* LocalPlayer = GetLocalPlayer())
+			if (const ULocalPlayer* LocalPlayer = GetLocalPlayer())
 			{
-				UE_LOG(LogTemp, Warning, TEXT("AMD_PlayerController::SetMatchMode_Implementation"));
 				if (UEnhancedInputLocalPlayerSubsystem* Subsystem = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
 				{
 					if (ClickMoveMappingContext)
@@ -101,10 +87,8 @@ void AMD_PlayerController::SetMatchMode_Implementation(EMathStage InMatchStage)
 				}
 
 				AFogOfWarManager* FogOfWarManager = AFogOfWarManager::Get(GetWorld(), (uint8)GetTeam());
-				UE_LOG(LogTemp, Warning, TEXT("AMD_PlayerController:: FogOfWarManager is valid %p with %hhd"), FogOfWarManager, GetTeam());
 				if (FogOfWarManager)
 				{
-					UE_LOG(LogTemp, Warning, TEXT("AMD_PlayerController:: BIND ON  OnUnitVisibilityChanged"));
 					FogOfWarManager->OnUnitVisibilityChanged.AddUObject(this, &AMD_PlayerController::OnUnitVisibilityChanged);
 				}
 			}
@@ -116,8 +100,7 @@ void AMD_PlayerController::SetMatchMode_Implementation(EMathStage InMatchStage)
 
 void AMD_PlayerController::OnUnitVisibilityChanged(AActor* Actor, bool bArg)
 {
-	// if (Actor->GetOwner() != this) return;
-
+	// Только вражеские Actor'ы, своих мы всегда видим
 	Actor->SetActorHiddenInGame(!bArg);
 }
 
@@ -159,15 +142,12 @@ void AMD_PlayerController::InputAttack()
 	FHitResult Hit;
 	if (GetHitResultUnderCursor(ECC_Pawn, false, Hit))
 	{
-
-		UE_LOG(LogMyDotaGAS, Warning, TEXT("InputAttack: Hit"));
 		AActor* Target = Hit.GetActor();
 		if (Target)
 		{
 			if (Target == Hero) return;
 			if (!Cast<APawn>(Hit.GetActor())) return;
 
-			UE_LOG(LogMyDotaGAS, Warning, TEXT("InputAttack: Hit target %s"), *Target->GetName());
 			Server_AttackTarget(Target);
 		}
 	}
@@ -195,7 +175,6 @@ void AMD_PlayerController::Server_MoveToLocation_Implementation(FVector InLocati
 		AAIController* AIC = Cast<AAIController>(Hero->GetController());
 		if (AIC)
 		{
-			UE_LOG(LogTemp, Display, TEXT("AI двигает героя в %s"), *InLocation.ToString());
 			AIC->MoveToLocation(InLocation, 5.f, true, true, true);
 		}
 	}
@@ -208,8 +187,7 @@ void AMD_PlayerController::Server_AttackTarget_Implementation(AActor* Target)
 		FGameplayEventData Payload;
 		Payload.Target = Target;
 
-		int32 count = Hero->GetAbilitySystemComponent()->HandleGameplayEvent(MyDotaTags::Event_Ability_RequestAttack, &Payload);
-		UE_LOG(LogMyDotaGAS, Warning, TEXT("Server_AttackTarget Executes Events %d"), count);
+		Hero->GetAbilitySystemComponent()->HandleGameplayEvent(MyDotaTags::Event_Ability_RequestAttack, &Payload);
 	}
 }
 

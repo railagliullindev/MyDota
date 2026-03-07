@@ -123,7 +123,7 @@ void AMD_CharacterBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		{
 			// Регистрируем юнит как источник обзора
 			FogManager->UnRegisterSource(this);
-			UE_LOG(LogTemp, Warning, TEXT("Server: Unregistered %s as Vision Source"), *GetName());
+			UE_LOG(LogTemp, Log, TEXT("Server: Unregistered %s as Vision Source"), *GetName());
 		}
 		else
 		{

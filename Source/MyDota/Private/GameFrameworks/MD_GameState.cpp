@@ -20,6 +20,17 @@ void AMD_GameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLif
 	DOREPLIFETIME(AMD_GameState, MathStage);
 }
 
+const TArray<AActor*>& AMD_GameState::GetUnitsInTeam(const EMDTeam& Team) const
+{
+	if (!AllTeamUnits.Contains(Team))
+	{
+		static TArray<AActor*> EmptyArray;
+		return EmptyArray;
+	}
+
+	return AllTeamUnits[Team].AllUnits;
+}
+
 void AMD_GameState::OnRep_MatchStage()
 {
 	switch (MathStage)
@@ -110,12 +121,26 @@ void AMD_GameState::RegisterHeroSelection(const int32 InPlayerId, const int32 He
 
 void AMD_GameState::RegisterUnit(AActor* Unit)
 {
-	AllUnits.Add(Unit);
+	if (!Unit) return;
+
+	const IMDTeamInterface* TeamInterface = Cast<const IMDTeamInterface>(Unit);
+	if (!TeamInterface) return;
+
+	FTeamUnits& TeamUnits = AllTeamUnits.FindOrAdd(TeamInterface->GetTeam());
+	TeamUnits.AllUnits.AddUnique(Unit);
 }
 
 void AMD_GameState::UnregisterUnit(AActor* Unit)
 {
-	AllUnits.Remove(Unit);
+	if (!Unit) return;
+
+	const IMDTeamInterface* TeamInterface = Cast<const IMDTeamInterface>(Unit);
+	if (!TeamInterface) return;
+
+	if (FTeamUnits* TeamUnits = AllTeamUnits.Find(TeamInterface->GetTeam()))
+	{
+		TeamUnits->AllUnits.Remove(Unit);
+	}
 }
 
 void AMD_GameState::RegisterNewPlayer(const int32 PlayerId, const int32 TeamId)

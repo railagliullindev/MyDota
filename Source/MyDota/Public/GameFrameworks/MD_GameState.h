@@ -7,6 +7,22 @@
 #include "GameModes/MD_GameMode.h"
 #include "MD_GameState.generated.h"
 
+enum class EMDTeam : uint8;
+
+USTRUCT()
+struct FTeamUnits
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	TArray<AActor*> AllUnits;
+
+	FTeamUnits()
+		: AllUnits()
+	{
+	}
+};
+
 struct FMatchHeroesInfo;
 class AMD_CharacterBase;
 /**
@@ -42,11 +58,15 @@ public:
 	UPROPERTY(Replicated)
 	TArray<FMatchHeroesInfo> HeroesInfo;
 
-	UPROPERTY()
-	TArray<AActor*> AllUnits;
+	/** Получить всех юнитов команды */
+	UFUNCTION(BlueprintCallable, Category = "Team Units")
+	const TArray<AActor*>& GetUnitsInTeam(const EMDTeam& Team) const;
 
 protected:
 
 	UFUNCTION()
 	void OnRep_MatchStage();
+
+	UPROPERTY()
+	TMap<EMDTeam, FTeamUnits> AllTeamUnits;
 };

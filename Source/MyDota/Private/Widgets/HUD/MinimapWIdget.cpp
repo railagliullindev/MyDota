@@ -96,12 +96,13 @@ FVector2D UMinimapWIdget::GetNormalizedPosition(const FVector& WorldLocation)
 
 void UMinimapWIdget::InitMinimapFog(UTexture2D* InFogTexture)
 {
-	UE_LOG(LogTemp, Warning, TEXT("UMinimapWIdget::InitMinimapFog"));
 	if (MinimapMaterial && InFogTexture)
 	{
 		MinimapMID = UMaterialInstanceDynamic::Create(MinimapMaterial, this);
 		MinimapMID->SetTextureParameterValue(FName("FogMask"), InFogTexture);
 
 		MinimapImage->SetBrushFromMaterial(MinimapMID);
+
+		UE_LOG(LogTemp, Log, TEXT("UMinimapWIdget::InitMinimapFog Successed"));
 	}
 }
