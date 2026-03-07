@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "MyDotaStructTypes.h"
-#include "Subsystems/WorldSubsystem.h"
 #include "FogOfWarManager.generated.h"
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnUnitVisibilityChanged, AActor*, const bool);
@@ -123,7 +122,7 @@ private:
 	bool bForceUpdate = false;
 
 	/** Специальная структура для обновления регионов текстуры */
-	FUpdateTextureRegion2D* TextureRegion;
+	TUniquePtr<FUpdateTextureRegion2D> TextureRegion; //  FUpdateTextureRegion2D* TextureRegion;
 
 	/** Хелпер для получения индекса из координат сетки */
 	FORCEINLINE int32 GetIndex(FIntPoint GridCoords) const

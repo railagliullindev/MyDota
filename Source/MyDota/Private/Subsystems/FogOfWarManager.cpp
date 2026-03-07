@@ -186,7 +186,7 @@ void AFogOfWarManager::UpdateTexture()
 	if (!FogTexture) return;
 
 	// Быстрая заливка буфера в видеопамять
-	const auto RegionData = TextureRegion;
+	const auto RegionData = TextureRegion.Get();
 	const auto DataPtr = PixelBuffer.GetData();
 
 	FogTexture->UpdateTextureRegions(0, 1, RegionData, MapSize.X * 4, 4, (uint8*)DataPtr);
@@ -310,20 +310,6 @@ bool AFogOfWarManager::IsCellVisible(FIntPoint GridPos) const
 	const int32 Index = GridPos.X + GridPos.Y * MapSize.X;
 	if (RawVisibilityData.IsValidIndex(Index))
 	{
-		if (false)
-		{
-			if (AssignedTeamID == EMDTeam::Dire)
-			{
-				for (int i = 0; i < RawVisibilityData.Num(); ++i)
-				{
-					const FVector Loc = GridToWorld(i);
-
-					DrawDebugPoint(GetWorld(), Loc + FVector(0, 0, 100.f), 5.f, (RawVisibilityData[i] == 255) ? FColor::Green : FColor::Red, false, 1.f);
-				}
-				const FVector Loc2 = GridToWorld(GridPos);
-				DrawDebugPoint(GetWorld(), Loc2 + FVector(0, 0, 250.f), 50.f, FColor::Blue, false, 1.f);
-			}
-		}
 
 		return RawVisibilityData[Index] == 255;
 	}
@@ -332,48 +318,9 @@ bool AFogOfWarManager::IsCellVisible(FIntPoint GridPos) const
 
 bool AFogOfWarManager::IsCellVisibleOnClient(FIntPoint GridPos) const
 {
-	/*for (int i = 0; i < TargetFogGoal.Num(); ++i)
-	{
-		int32 GridX = i % MapSize.X;
-		int32 GridY = i / MapSize.X;
-
-		// 2. Из сетки в мировые координаты (относительно центра менеджера)
-		float WorldX = (GridX - (MapSize.X / 2.0f)) * GridCellSize;
-		float WorldY = (GridY - (MapSize.Y / 2.0f)) * GridCellSize;
-
-		// 3. Учитываем позицию самого менеджера в мире
-		FVector ManagerLoc = GetActorLocation();
-
-		// Z берем либо из запеченных высот, либо из позиции менеджера
-		float WorldZ = ManagerLoc.Z;
-		if (TerrainHeights.IsValidIndex(i))
-		{
-			// Помнишь, мы делили на 128 при запекании? Теперь умножаем обратно.
-			WorldZ = TerrainHeights[i] * TerrainHeightLevel;
-		}
-
-		FVector Loc = FVector(WorldX + ManagerLoc.X, WorldY + ManagerLoc.Y, WorldZ);
-
-		DrawDebugPoint(GetWorld(), Loc + FVector(0, 0, 250), 5.f, (TargetFogGoal[i] == 1) ? FColor::White : FColor::Red, false, 1.f);
-	}*/
-
 	const int32 Index = GridPos.X + GridPos.Y * MapSize.X;
 	if (TargetFogGoal.IsValidIndex(Index))
 	{
-		if (false)
-		{
-			if (AssignedTeamID == EMDTeam::Dire)
-			{
-				for (int i = 0; i < RawVisibilityData.Num(); ++i)
-				{
-					const FVector Loc = GridToWorld(i);
-
-					DrawDebugPoint(GetWorld(), Loc + FVector(0, 0, 100.f), 5.f, (RawVisibilityData[i] == 255) ? FColor::Green : FColor::Red, false, 1.f);
-				}
-				const FVector Loc2 = GridToWorld(GridPos);
-				DrawDebugPoint(GetWorld(), Loc2 + FVector(0, 0, 250.f), 50.f, FColor::Blue, false, 1.f);
-			}
-		}
 
 		return TargetFogGoal[Index] == 1;
 	}
@@ -574,31 +521,9 @@ void AFogOfWarManager::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty
 
 void AFogOfWarManager::Tick(float DeltaSeconds)
 {
+	// #ifndef UE_SERVER
 	if (!HasAuthority())
 	{
-		/*bool bNeedsTextureUpdate = false;
-
-		for (int32 i = 0; i < CurrentInterpolatedFog.Num(); ++i)
-		{
-			float OldVal = CurrentInterpolatedFog[i];
-
-			// Плавно движемся к цели
-			CurrentInterpolatedFog[i] = FMath::FInterpTo(OldVal, TargetFogGoal[i], DeltaSeconds, FogFadeSpeed);
-
-			// Если значение заметно изменилось, обновляем пиксель
-			if (!FMath::IsNearlyEqual(OldVal, CurrentInterpolatedFog[i], 0.01f))
-			{
-				uint8 Brightness = FMath::RoundToInt(CurrentInterpolatedFog[i] * 255.0f);
-				PixelBuffer[i] = FColor(Brightness, Brightness, Brightness, 255);
-				bNeedsTextureUpdate = true;
-			}
-		}
-
-		if (bNeedsTextureUpdate)
-		{
-			UpdateTexture();
-		}*/
-
 		bool bChanged = false;
 
 		for (int32 i = 0; i < CurrentInterpolatedFog.Num(); ++i)
@@ -632,6 +557,7 @@ void AFogOfWarManager::Tick(float DeltaSeconds)
 			}
 		}
 	}
+	// #endif
 }
 
 void AFogOfWarManager::InitFogManager()
@@ -699,7 +625,9 @@ void AFogOfWarManager::InitTexture()
 	FogTexture->UpdateResource();
 
 	PixelBuffer.SetNumUninitialized(MapSize.X * MapSize.Y);
-	TextureRegion = new FUpdateTextureRegion2D(0, 0, 0, 0, MapSize.X, MapSize.Y);
+	// TextureRegion = new FUpdateTextureRegion2D(0, 0, 0, 0, MapSize.X, MapSize.Y);
+
+	TextureRegion = MakeUnique<FUpdateTextureRegion2D>(0, 0, 0, 0, MapSize.X, MapSize.Y);
 
 	if (PostProcessMaterial)
 	{
