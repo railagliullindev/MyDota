@@ -117,6 +117,7 @@ void AMD_PlayerController::SetMatchMode_Implementation(EMathStage InMatchStage)
 void AMD_PlayerController::OnUnitVisibilityChanged(AActor* Actor, bool bArg)
 {
 	// if (Actor->GetOwner() != this) return;
+
 	Actor->SetActorHiddenInGame(!bArg);
 }
 

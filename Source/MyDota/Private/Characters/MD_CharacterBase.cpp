@@ -116,6 +116,21 @@ void AMD_CharacterBase::BeginPlay()
 void AMD_CharacterBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	UnRegisterUnit();
+
+	if (HasAuthority())
+	{
+		if (AFogOfWarManager* FogManager = AFogOfWarManager::Get(this, (uint8)GetTeam()))
+		{
+			// Регистрируем юнит как источник обзора
+			FogManager->UnRegisterSource(this);
+			UE_LOG(LogTemp, Warning, TEXT("Server: Unregistered %s as Vision Source"), *GetName());
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("Server: FogManager NOT FOUND during ~AMD_CharacterBase!"));
+		}
+	}
+
 	Super::EndPlay(EndPlayReason);
 }
 
@@ -157,8 +172,7 @@ void AMD_CharacterBase::SetPlayerState(AMD_PlayerState* InPs)
 	// или это не клиентская копия в мультиплеере
 	if (HasAuthority())
 	{
-		AFogOfWarManager* FogManager = AFogOfWarManager::Get(this, (uint8)GetTeam());
-		if (FogManager)
+		if (AFogOfWarManager* FogManager = AFogOfWarManager::Get(this, (uint8)GetTeam()))
 		{
 			// Регистрируем юнит как источник обзора
 			FogManager->RegisterSource(this, 1200.0f);
