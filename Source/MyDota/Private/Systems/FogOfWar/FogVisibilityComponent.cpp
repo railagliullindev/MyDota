@@ -40,7 +40,7 @@ void UFogVisibilityComponent::OnInit()
 	const IMDTeamInterface* ViewerTeam = Cast<const IMDTeamInterface>(GetOwner());
 	if (IsServer)
 	{
-		FogManager = AFogOfWarManager::Get(this, (uint8)ViewerTeam->GetTeam());
+		FogManager = AFogOfWarManager::Get(this, static_cast<uint8>(ViewerTeam->GetTeam()));
 		if (FogManager)
 		{
 			FogManager->OnUnitVisibilityChanged.AddUObject(this, &UFogVisibilityComponent::OnVisibilityChanged);
@@ -55,7 +55,7 @@ void UFogVisibilityComponent::OnInit()
 	{
 		if (IsOwnedByLocalPlayer)
 		{
-			FogManager = AFogOfWarManager::Get(this, (uint8)ViewerTeam->GetTeam());
+			FogManager = AFogOfWarManager::Get(this, static_cast<uint8>(ViewerTeam->GetTeam()));
 			if (FogManager)
 			{
 				FogManager->OnUnitVisibilityChanged.AddUObject(this, &UFogVisibilityComponent::OnVisibilityChanged);

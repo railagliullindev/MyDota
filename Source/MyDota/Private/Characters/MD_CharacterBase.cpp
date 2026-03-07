@@ -119,7 +119,7 @@ void AMD_CharacterBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 	if (HasAuthority())
 	{
-		if (AFogOfWarManager* FogManager = AFogOfWarManager::Get(this, (uint8)GetTeam()))
+		if (AFogOfWarManager* FogManager = AFogOfWarManager::Get(this, static_cast<uint8>(GetTeam())))
 		{
 			// Регистрируем юнит как источник обзора
 			FogManager->UnRegisterSource(this);
@@ -141,13 +141,13 @@ EMDTeam AMD_CharacterBase::GetTeam() const
 
 FGenericTeamId AMD_CharacterBase::GetGenericTeamId() const
 {
-	return FGenericTeamId((uint8)GetTeam());
+	return FGenericTeamId(static_cast<uint8>(GetTeam()));
 }
 
 bool AMD_CharacterBase::IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const
 {
 	const IMDTeamInterface* ViewerTeam = Cast<const IMDTeamInterface>(RealViewer);
-	AFogOfWarManager* FogManager = AFogOfWarManager::Get(this, (uint8)ViewerTeam->GetTeam());
+	AFogOfWarManager* FogManager = AFogOfWarManager::Get(this, static_cast<uint8>(ViewerTeam->GetTeam()));
 	if (FogManager)
 	{
 		const AMD_PlayerController* PC = Cast<AMD_PlayerController>(RealViewer);
@@ -172,7 +172,7 @@ void AMD_CharacterBase::SetPlayerState(AMD_PlayerState* InPs)
 	// или это не клиентская копия в мультиплеере
 	if (HasAuthority())
 	{
-		if (AFogOfWarManager* FogManager = AFogOfWarManager::Get(this, (uint8)GetTeam()))
+		if (AFogOfWarManager* FogManager = AFogOfWarManager::Get(this, static_cast<uint8>(GetTeam())))
 		{
 			// Регистрируем юнит как источник обзора
 			FogManager->RegisterSource(this, 1200.0f);
