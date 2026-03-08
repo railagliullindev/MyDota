@@ -38,7 +38,7 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Hero Info")
 	TArray<FHeroInfo> HeroesInfo;
 
-	UTexture2D* GetIconForHero(AMD_CharacterBase* InHero) const
+	UTexture2D* GetIconForHero(AActor* InHero) const
 	{
 		if (!InHero) return nullptr;
 		for (const auto& Info : HeroesInfo)
