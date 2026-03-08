@@ -2,7 +2,7 @@
 
 #include "Actors/MD_ActorsBase.h"
 
-#include "Subsystems/FogOfWarManager.h"
+#include "Systems/FogOfWar/FogOfWarManager.h"
 
 // Sets default values
 AMD_ActorsBase::AMD_ActorsBase()

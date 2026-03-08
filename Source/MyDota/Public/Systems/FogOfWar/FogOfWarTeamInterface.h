@@ -4,17 +4,17 @@
 
 #include "CoreMinimal.h"
 #include "UObject/Interface.h"
-#include "MDTeamInterface.generated.h"
+#include "FogOfWarTeamInterface.generated.h"
 
 enum class EMDTeam : uint8;
 
 UINTERFACE(MinimalAPI)
-class UMDTeamInterface : public UInterface
+class UFogOfWarTeamInterface : public UInterface
 {
 	GENERATED_BODY()
 };
 
-class MYDOTA_API IMDTeamInterface
+class MYDOTA_API IFogOfWarTeamInterface
 {
 	GENERATED_BODY()
 

@@ -6,7 +6,7 @@
 #include "Controllers/MD_PlayerController.h"
 #include "GameFrameworks/MD_GameState.h"
 #include "GameFrameworks/MD_PlayerState.h"
-#include "Subsystems/FogOfWarManager.h"
+#include "Systems/FogOfWar/FogOfWarManager.h"
 
 void UMinimapWIdget::NativeConstruct()
 {

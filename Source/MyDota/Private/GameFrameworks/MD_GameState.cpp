@@ -123,7 +123,7 @@ void AMD_GameState::RegisterUnit(AActor* Unit)
 {
 	if (!Unit) return;
 
-	const IMDTeamInterface* TeamInterface = Cast<const IMDTeamInterface>(Unit);
+	const IFogOfWarTeamInterface* TeamInterface = Cast<const IFogOfWarTeamInterface>(Unit);
 	if (!TeamInterface) return;
 
 	FTeamUnits& TeamUnits = AllTeamUnits.FindOrAdd(TeamInterface->GetTeam());
@@ -134,7 +134,7 @@ void AMD_GameState::UnregisterUnit(AActor* Unit)
 {
 	if (!Unit) return;
 
-	const IMDTeamInterface* TeamInterface = Cast<const IMDTeamInterface>(Unit);
+	const IFogOfWarTeamInterface* TeamInterface = Cast<const IFogOfWarTeamInterface>(Unit);
 	if (!TeamInterface) return;
 
 	if (FTeamUnits* TeamUnits = AllTeamUnits.Find(TeamInterface->GetTeam()))

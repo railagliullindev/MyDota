@@ -7,7 +7,7 @@
 #include "AbilitySystemInterface.h"
 #include "GameplayEffectTypes.h"
 #include "GenericTeamAgentInterface.h"
-#include "Interfaces/MDTeamInterface.h"
+#include "Systems/FogOfWar/FogOfWarTeamInterface.h"
 #include "MD_CharacterBase.generated.h"
 
 class UFogVisibilityComponent;
@@ -22,7 +22,7 @@ class UMD_AttributeSet;
 class UMD_AbilitySystemComponent;
 
 UCLASS()
-class MYDOTA_API AMD_CharacterBase : public ACharacter, public IAbilitySystemInterface, public IMDTeamInterface, public IGenericTeamAgentInterface
+class MYDOTA_API AMD_CharacterBase : public ACharacter, public IAbilitySystemInterface, public IFogOfWarTeamInterface, public IGenericTeamAgentInterface
 {
 	GENERATED_BODY()
 

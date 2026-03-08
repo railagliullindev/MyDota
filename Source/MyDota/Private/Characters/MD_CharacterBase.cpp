@@ -15,8 +15,8 @@
 #include "GameFrameworks/MD_PlayerState.h"
 #include "MyDota/MyDota.h"
 #include "Net/UnrealNetwork.h"
+#include "Systems/FogOfWar/FogOfWarManager.h"
 #include "Widgets/Overhead/MD_OverheadWidget.h"
-#include "Subsystems/FogOfWarManager.h"
 
 AMD_CharacterBase::AMD_CharacterBase()
 {
@@ -146,7 +146,7 @@ FGenericTeamId AMD_CharacterBase::GetGenericTeamId() const
 
 bool AMD_CharacterBase::IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const
 {
-	const IMDTeamInterface* ViewerTeam = Cast<const IMDTeamInterface>(RealViewer);
+	const IFogOfWarTeamInterface* ViewerTeam = Cast<const IFogOfWarTeamInterface>(RealViewer);
 	AFogOfWarManager* FogManager = AFogOfWarManager::Get(this, static_cast<uint8>(ViewerTeam->GetTeam()));
 	if (FogManager)
 	{

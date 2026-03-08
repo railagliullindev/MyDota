@@ -4,11 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "Interfaces/MDTeamInterface.h"
+#include "Systems/FogOfWar/FogOfWarTeamInterface.h"
 #include "MD_ActorsBase.generated.h"
 
 UCLASS()
-class MYDOTA_API AMD_ActorsBase : public AActor, public IMDTeamInterface
+class MYDOTA_API AMD_ActorsBase : public AActor, public IFogOfWarTeamInterface
 {
 	GENERATED_BODY()
 

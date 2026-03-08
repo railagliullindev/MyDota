@@ -2,11 +2,8 @@
 
 #include "Systems/FogOfWar/FogVisibilityComponent.h"
 
-#include "Characters/MD_CharacterBase.h"
-#include "GameFramework/GameSession.h"
 #include "GameFrameworks/MD_PlayerState.h"
-#include "Interfaces/MDTeamInterface.h"
-#include "Subsystems/FogOfWarManager.h"
+#include "Systems/FogOfWar/FogOfWarManager.h"
 
 UFogVisibilityComponent::UFogVisibilityComponent()
 {
@@ -37,7 +34,7 @@ void UFogVisibilityComponent::BeginPlay()
 
 void UFogVisibilityComponent::OnInit()
 {
-	const IMDTeamInterface* ViewerTeam = Cast<const IMDTeamInterface>(GetOwner());
+	const IFogOfWarTeamInterface* ViewerTeam = Cast<const IFogOfWarTeamInterface>(GetOwner());
 	if (IsServer)
 	{
 		FogManager = AFogOfWarManager::Get(this, static_cast<uint8>(ViewerTeam->GetTeam()));
@@ -68,8 +65,6 @@ void UFogVisibilityComponent::OnInit()
 		}
 		else
 		{
-
-			// FogManager = AFogOfWarManager::Get(this, (uint8)ViewerTeam->GetTeam());
 			if (FogManager)
 			{
 				FogManager->OnUnitVisibilityChanged.AddUObject(this, &UFogVisibilityComponent::OnVisibilityChanged);

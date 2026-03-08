@@ -6,7 +6,7 @@
 #include "AbilitySystemInterface.h"
 #include "MyDotaStructTypes.h"
 #include "GameFramework/PlayerState.h"
-#include "Interfaces/MDTeamInterface.h"
+#include "Systems/FogOfWar/FogOfWarTeamInterface.h"
 #include "MD_PlayerState.generated.h"
 
 class UMDHeroInfoDataAsset;
@@ -17,7 +17,7 @@ class AMD_CharacterBase;
  *
  */
 UCLASS(Abstract, HideDropdown)
-class MYDOTA_API AMD_PlayerState : public APlayerState, public IAbilitySystemInterface, public IMDTeamInterface
+class MYDOTA_API AMD_PlayerState : public APlayerState, public IAbilitySystemInterface, public IFogOfWarTeamInterface
 {
 	GENERATED_BODY()
 

@@ -6,7 +6,7 @@
 #include "GameFramework/PlayerController.h"
 #include "GenericTeamAgentInterface.h"
 #include "GameModes/MD_GameMode.h"
-#include "Interfaces/MDTeamInterface.h"
+#include "Systems/FogOfWar/FogOfWarTeamInterface.h"
 #include "MD_PlayerController.generated.h"
 
 class AMD_CharacterBase;
@@ -18,7 +18,7 @@ struct FInputActionValue;
  *
  */
 UCLASS()
-class MYDOTA_API AMD_PlayerController : public APlayerController, public IGenericTeamAgentInterface, public IMDTeamInterface
+class MYDOTA_API AMD_PlayerController : public APlayerController, public IGenericTeamAgentInterface, public IFogOfWarTeamInterface
 {
 	GENERATED_BODY()
 

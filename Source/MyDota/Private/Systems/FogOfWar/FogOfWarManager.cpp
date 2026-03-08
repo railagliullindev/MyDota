@@ -1,12 +1,12 @@
 // Rail Agliullin Dev. All Rights Reserved
 
-#include "Subsystems/FogOfWarManager.h"
+#include "Systems/FogOfWar/FogOfWarManager.h"
 
 #include "EngineUtils.h"
 #include "GameFrameworks/MD_GameState.h"
-#include "Interfaces/MDTeamInterface.h"
 #include "MyDota/MyDota.h"
 #include "Net/UnrealNetwork.h"
+#include "Systems/FogOfWar/FogOfWarTeamInterface.h"
 
 AFogOfWarManager::AFogOfWarManager()
 {
@@ -317,7 +317,7 @@ FVector AFogOfWarManager::GridToWorld(const FIntPoint& GridCoords) const
 
 bool AFogOfWarManager::IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const
 {
-	if (const IMDTeamInterface* ViewerTeam = Cast<IMDTeamInterface>(RealViewer))
+	if (const IFogOfWarTeamInterface* ViewerTeam = Cast<IFogOfWarTeamInterface>(RealViewer))
 	{
 		return ViewerTeam->GetTeam() == this->AssignedTeamID;
 	}

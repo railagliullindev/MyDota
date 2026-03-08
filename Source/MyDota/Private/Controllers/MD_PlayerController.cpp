@@ -12,9 +12,8 @@
 #include "Characters/MD_CharacterBase.h"
 #include "GameFrameworks/MD_PlayerState.h"
 #include "GameModes/MD_GameMode.h"
-#include "MyDota/MyDota.h"
 #include "Net/UnrealNetwork.h"
-#include "Subsystems/FogOfWarManager.h"
+#include "Systems/FogOfWar/FogOfWarManager.h"
 
 AMD_PlayerController::AMD_PlayerController()
 {
