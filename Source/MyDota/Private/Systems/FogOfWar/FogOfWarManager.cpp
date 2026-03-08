@@ -238,6 +238,16 @@ EMDTeam AFogOfWarManager::GetCachedEnemyTeam()
 	return EnemyTeamCached;
 }
 
+EMDTeam AFogOfWarManager::GetEnemyTeam(const EMDTeam InTeam)
+{
+	switch (InTeam)
+	{
+		case EMDTeam::Radiant: return EMDTeam::Dire;
+		case EMDTeam::Dire: return EMDTeam::Radiant;
+		default: return EMDTeam::None;
+	}
+}
+
 FIntPoint AFogOfWarManager::WorldToGrid(const FVector& Location) const
 {
 	int32 GridX = FMath::FloorToInt(Location.X / GridCellSize) + (MapSize.X / 2);

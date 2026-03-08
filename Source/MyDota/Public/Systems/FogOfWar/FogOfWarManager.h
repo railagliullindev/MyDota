@@ -84,6 +84,17 @@ public:
 	/** Получить ячейку по из мировых координат */
 	FIntPoint WorldToGrid(const FVector& Location) const;
 
+	/** Получить размеры карты */
+	FORCEINLINE FIntPoint GetMapSize() const
+	{
+		return MapSize;
+	};
+
+	FORCEINLINE float GetGridCellSize() const
+	{
+		return GridCellSize;
+	}
+
 	// --- Проверка видимости ----------------------------------------------------
 	/** Проверить видимость ячейки (серверная версия) */
 	bool IsCellVisible(const FIntPoint& GridPos) const;
@@ -111,6 +122,8 @@ public:
 	UPROPERTY(Replicated, VisibleAnywhere)
 	EMDTeam AssignedTeamID;
 
+protected:
+
 	/** Размер одной ячейки в юнитах UE */
 	UPROPERTY(EditDefaultsOnly, Category = "Fog Settings", meta = (ClampMin = "25"))
 	float GridCellSize = 100.f;
@@ -122,6 +135,7 @@ public:
 	/* ============================================================================
 	 *  Свойства (Только для сервера)
 	 * ============================================================================ */
+public:
 
 	/** Шаг высоты для уровней террейна */
 	UPROPERTY(EditDefaultsOnly, Category = "Fog Settings|Server", meta = (ClampMin = "1"))
@@ -310,4 +324,9 @@ private:
 	// --- Битовые операции ---
 	static constexpr int32 BITS_PER_WORD = 32;
 	static constexpr int32 BIT_INDEX_MASK = 32;
+
+public:
+
+	UFUNCTION()
+	static EMDTeam GetEnemyTeam(EMDTeam InTeam);
 };
