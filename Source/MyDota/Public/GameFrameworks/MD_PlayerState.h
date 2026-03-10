@@ -9,6 +9,9 @@
 #include "Systems/FogOfWar/FogOfWarTeamInterface.h"
 #include "MD_PlayerState.generated.h"
 
+// Делегат для UI (вызывается на всех клиентах при получении данных)
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnRespawnStatusChanged, bool, bIsDead, float, SecondsLeft);
+
 class UMDHeroInfoDataAsset;
 class UMD_AbilitySystemComponent;
 class UMD_AttributeSet;
@@ -47,6 +50,16 @@ public:
 	int32 HeroId = -1;
 
 	TSubclassOf<AMD_CharacterBase> SelectedHeroClass;
+
+	// Метка времени сервера, когда герой должен ожить
+	UPROPERTY(ReplicatedUsing = OnRep_RespawnTimeFinished, BlueprintReadOnly, Category = "Death")
+	float RespawnTimeFinished = 0.0f;
+
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnRespawnStatusChanged OnRespawnStatusChanged;
+
+	UFUNCTION()
+	void OnRep_RespawnTimeFinished();
 
 protected:
 

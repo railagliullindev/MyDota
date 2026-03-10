@@ -33,6 +33,26 @@ void AMD_PlayerState::OnRep_Team()
 	// TODO: Что бы клиент мгновенно узнал о нахначенной стороне
 }
 
+void AMD_PlayerState::OnRep_RespawnTimeFinished()
+{
+	const float CurrentTime = GetWorld()->GetTimeSeconds();
+
+	// Если время в будущем — герой мертв
+	// const bool bIsDead = RespawnTimeFinished > CurrentTime;
+
+	const bool bIsDead = (RespawnTimeFinished > 0) ? true : false;
+
+	int32 SecondsLeft = 0;
+	if (bIsDead)
+	{
+		// Вычисляем разницу и округляем вверх
+		SecondsLeft = FMath::CeilToInt(RespawnTimeFinished - CurrentTime);
+	}
+
+	// Рассылаем статус (теперь и сервер, и клиенты получат одинаковые данные)
+	OnRespawnStatusChanged.Broadcast(bIsDead, SecondsLeft);
+}
+
 void AMD_PlayerState::OnRep_HeroId()
 {
 	if (!HeroInfoData)
@@ -59,4 +79,5 @@ void AMD_PlayerState::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>
 
 	DOREPLIFETIME(AMD_PlayerState, HeroId);
 	DOREPLIFETIME(AMD_PlayerState, Team);
+	DOREPLIFETIME(AMD_PlayerState, RespawnTimeFinished);
 }

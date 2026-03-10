@@ -42,17 +42,22 @@ void UGA_HeroDeath::ActivateAbility(
 	GetAbilitySystemComponentFromActorInfo()->CancelAbilities(&CancelTags);
 
 	// 2. Только на сервере считаем время смерти и запускаем логику
-	if (HasAuthority(&ActivationInfo))
+	if (HasAuthority(&CurrentActivationInfo))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[Server] UGA_HeroDeath::ActivateAbility Start timer"));
+
 		// В Dota время респавна зависит от уровня: Level * 2 + 5 (условно)
-		float RespawnTime = 5.f; // CalculateRespawnTime();
+		float RespawnTime = 5.f; //  Здесь логика расчета времени (Level * 2 + 5)
 
-		// Передаем время респавна в PlayerState (через атрибут или переменную),
-		// чтобы UI CameraPawn мог его отобразить
-		UpdateRespawnTimerOnPlayerState(RespawnTime);
+		float FinishTime = GetWorld()->GetTimeSeconds() + RespawnTime;
 
-		// 3. Устанавливаем таймер на само воскрешение
+		if (AMD_PlayerState* PS = Cast<AMD_PlayerState>(GetOwningActorFromActorInfo()))
+		{
+			PS->RespawnTimeFinished = FinishTime;
+			PS->OnRep_RespawnTimeFinished(); // Форсируем вызов для сервера
+		}
+
+		// Серверный таймер на фактическое воскрешение
 		GetWorld()->GetTimerManager().SetTimer(RespawnTimerHandle, this, &UGA_HeroDeath::OnRespawnFinished, RespawnTime, false);
 	}
 
@@ -74,14 +79,17 @@ void UGA_HeroDeath::EndAbility(
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 }
 
-void UGA_HeroDeath::UpdateRespawnTimerOnPlayerState(float RespawnTime)
-{
-}
-
 void UGA_HeroDeath::OnRespawnFinished()
 {
+	if (AMD_PlayerState* PS = Cast<AMD_PlayerState>(GetOwningActorFromActorInfo()))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UGA_HeroDeath::OnRespawnFinished RESET RESPAWN TIME"));
+		PS->RespawnTimeFinished = 0.0f; // Сбрасываем таймер
+		PS->OnRep_RespawnTimeFinished();
+	}
 
 	if (!HasAuthority(&CurrentActivationInfo)) return;
+
 	UE_LOG(LogTemp, Warning, TEXT("[Server] UGA_HeroDeath::OnRespawnFinished"));
 
 	UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();

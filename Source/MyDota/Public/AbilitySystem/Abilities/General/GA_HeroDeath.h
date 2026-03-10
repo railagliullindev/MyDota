@@ -25,7 +25,6 @@ protected:
 	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility,
 		bool bWasCancelled) override;
 
-	void UpdateRespawnTimerOnPlayerState(float RespawnTime);
 	void OnRespawnFinished();
 
 	FTimerHandle RespawnTimerHandle;
