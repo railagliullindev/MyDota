@@ -2,6 +2,7 @@
 
 #include "Characters/MD_CharacterBase.h"
 
+#include "AIController.h"
 #include "AbilitySystem/MD_AbilitySystemComponent.h"
 #include "AbilitySystem/MD_AttributeSet.h"
 #include "Actors/Projectile/MD_ProjectileBase.h"
@@ -15,6 +16,7 @@
 #include "GameFrameworks/MD_PlayerState.h"
 #include "MyDota/MyDota.h"
 #include "Net/UnrealNetwork.h"
+#include "Pawns/MD_CameraPawn.h"
 #include "Systems/FogOfWar/FogOfWarManager.h"
 #include "Widgets/Overhead/MD_OverheadWidget.h"
 
@@ -84,6 +86,37 @@ void AMD_CharacterBase::UnRegisterUnit()
 	}
 }
 
+void AMD_CharacterBase::HandleDeath()
+{
+	// 1. Капсула больше не блокирует мир (чтобы враги могли проходить "сквозь" труп)
+	// Но мы оставляем её живой, чтобы актор не удалился
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	GetCapsuleComponent()->SetCollisionResponseToAllChannels(ECR_Ignore);
+
+	// 2. Настраиваем Меш для Ragdoll
+	if (USkeletalMeshComponent* MeshComp = GetMesh())
+	{
+		// Включаем коллизию меша, чтобы он видел пол
+		MeshComp->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+
+		// Убеждаемся, что меш блокирует WorldStatic (пол)
+		MeshComp->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Block);
+
+		// Включаем симуляцию
+		MeshComp->SetSimulatePhysics(true);
+
+		// Опционально: даем импульс в сторону урона, чтобы тело "отлетело"
+		// MeshComp->AddImpulse(DeathImpulse);
+	}
+
+	// 3. Останавливаем движение (чтобы труп не скользил по инерции)
+	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	{
+		MoveComp->StopMovementImmediately();
+		MoveComp->DisableMovement();
+	}
+}
+
 bool AMD_CharacterBase::IsOwnedByLocalPlayer(AActor* InActor) const
 {
 	if (!InActor) return false;
@@ -96,6 +129,76 @@ bool AMD_CharacterBase::IsOwnedByLocalPlayer(AActor* InActor) const
 	else
 	{
 		return false;
+	}
+}
+
+void AMD_CharacterBase::OnRespawnAction(FVector RespawnLocation)
+{
+	// 1. Останавливаем все текущие движения и инерцию
+	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	{
+		MoveComp->StopMovementImmediately();
+		MoveComp->DisableMovement(); // Временно отключаем, пока телепортируем
+
+		// Сбрасываем флаги падения/плавания, чтобы герой стоял ровно
+		MoveComp->SetDefaultMovementMode();
+	}
+
+	// 2. Телепортация
+	// Используем ETeleportType::TeleportPhysics, чтобы не было "растягивания" физических костей
+	SetActorLocation(RespawnLocation, false, nullptr, ETeleportType::TeleportPhysics);
+
+	// 3.Capsule
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	GetCapsuleComponent()->SetCollisionProfileName(EName::Pawn); // SetCollisionResponseToAllChannels(ECR_Ignore);
+
+	// 4. Возвращаем меш из Ragdoll (если он был)
+	if (USkeletalMeshComponent* MeshComp = GetMesh())
+	{
+		MeshComp->SetSimulatePhysics(false);
+
+		// Возвращаем коллизию персонажа (для получения урона/кликов)
+		MeshComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+		MeshComp->SetCollisionResponseToAllChannels(ECR_Block); // Или ваши настройки
+
+		// Важно: При Ragdoll меш отрывается от капсулы. Возвращаем его на место.
+		MeshComp->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
+
+		// Сбрасываем локальные трансформации меша к исходным (из Blueprints/Constructor)
+		MeshComp->SetRelativeLocation(FVector(0.f, 0.f, -GetCapsuleComponent()->GetScaledCapsuleHalfHeight()));
+		MeshComp->SetRelativeRotation(FRotator(0.f, -90.f, 0.f));
+
+		// Обнуляем скорость костей
+		MeshComp->SetPhysicsLinearVelocity(FVector::ZeroVector);
+		MeshComp->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
+	}
+
+	// 5. Включаем движение обратно
+	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	{
+		MoveComp->SetMovementMode(MOVE_Walking);
+	}
+
+	// 6. Визуальное обновление (только если скрывали актора)
+	SetActorHiddenInGame(false);
+
+	// Если используете AIController для кликов (как в Dota), сбросьте его путь
+	if (AAIController* AIC = Cast<AAIController>(GetController()))
+	{
+		AIC->StopMovement();
+	}
+
+	if (IsLocallyControlled())
+	{
+		// Находим наш CameraPawn через PlayerController
+		if (APlayerController* PC = Cast<APlayerController>(GetController()))
+		{
+			if (AMD_CameraPawn* CamPawn = Cast<AMD_CameraPawn>(PC->GetPawn()))
+			{
+				// Устанавливаем положение камеры над героем
+				CamPawn->SetActorLocation(RespawnLocation); // SnapToLocation(RespawnLocation);
+			}
+		}
 	}
 }
 
@@ -196,9 +299,12 @@ void AMD_CharacterBase::InitAbilitySystem()
 		// ВАЖНО: Owner — PlayerState, Avatar — Character (тело)
 		PS->GetAbilitySystemComponent()->InitAbilityActorInfo(PS, this);
 
+		PS->GetAttributeSet()->OnHeroDied.AddDynamic(this, &AMD_CharacterBase::HandleDeath);
+
 		UE_LOG(LogMyDotaGAS, Log, TEXT("[%s] GAS инициализирован для %s через PlayerState"), HasAuthority() ? TEXT("Server") : TEXT("Client"), *GetName());
 
 		if (!HasAuthority()) return;
+
 		if (!HeroStartupData.IsNull())
 		{
 			if (UDataAsset_HeroStartupData* LoadedData = HeroStartupData.LoadSynchronous())

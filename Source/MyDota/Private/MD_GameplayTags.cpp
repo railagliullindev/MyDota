@@ -15,6 +15,13 @@ namespace MyDotaTags
 	UE_DEFINE_GAMEPLAY_TAG(Character_Mana, "Character.Mana");
 	UE_DEFINE_GAMEPLAY_TAG(Character_ManaMax, "Character.ManaMax");
 
+	/** Status */
+	UE_DEFINE_GAMEPLAY_TAG(Status, "Status");
+	UE_DEFINE_GAMEPLAY_TAG(Status_Death, "Status.Death");
+
+	/** GameplayCues */
+	UE_DEFINE_GAMEPLAY_TAG(GameplayCue_Character_Respawn, "GameplayCue.Character.Respawn");
+
 	/** Camera Tags */
 	UE_DEFINE_GAMEPLAY_TAG(Camera_Locked, "Camera.Locked");
 	UE_DEFINE_GAMEPLAY_TAG(Camera_FollowingHero, "Camera.FollowingHero");

@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameMode.h"
+#include "Widgets/HUD/MinimapWIdget.h"
 #include "MD_GameMode.generated.h"
 
 class AFogOfWarManager;
@@ -39,6 +40,9 @@ public:
 
 	void SetMatchStage(EMathStage NewStage);
 
+	// Главная функция получения точки
+	FVector GetBaseLocation(EMDTeam Team) const;
+
 protected:
 
 	void WaitingForPlayers();
@@ -57,6 +61,13 @@ protected:
 
 	UPROPERTY()
 	AMD_GameState* GS;
+
+	// Координаты (можно задать прямо в BP-версии GameMode)
+	UPROPERTY(EditAnywhere, Category = "Spawning")
+	FVector RadiantSpawnLocation;
+
+	UPROPERTY(EditAnywhere, Category = "Spawning")
+	FVector DireSpawnLocation;
 
 private:
 

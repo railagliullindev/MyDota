@@ -58,6 +58,8 @@ public:
 
 	bool IsOwnedByLocalPlayer(AActor* InActor) const;
 
+	void OnRespawnAction(FVector RespawnLocation);
+
 protected:
 
 	// Переопределения для мультиплеера
@@ -96,4 +98,7 @@ protected:
 
 	void RegisterUnit();
 	void UnRegisterUnit();
+
+	UFUNCTION()
+	void HandleDeath();
 };

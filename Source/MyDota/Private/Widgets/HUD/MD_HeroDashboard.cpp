@@ -52,8 +52,6 @@ void UMD_HeroDashboard::UpdateHealth(const FOnAttributeChangeData& OnAttributeCh
 		const float HealthPercent = AS->GetHealth() / AS->GetHealthMax();
 		HealthBar->SetPercent(HealthPercent);
 
-		UE_LOG(LogTemp, Warning, TEXT("Health Updated: %f / %f"), AS->GetHealth(), AS->GetHealthMax());
-
 		CurrentHealthText->SetText(FText::FromString(FormatValue(AS->GetHealth(), AS->GetHealthMax())));
 	}
 }

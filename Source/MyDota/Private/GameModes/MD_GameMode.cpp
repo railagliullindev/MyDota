@@ -98,6 +98,14 @@ void AMD_GameMode::SetMatchStage(EMathStage NewStage)
 	GS->SetMatchStage(NewStage);
 }
 
+FVector AMD_GameMode::GetBaseLocation(EMDTeam Team) const
+{
+	if (Team == EMDTeam::Radiant) return RadiantSpawnLocation;
+	if (Team == EMDTeam::Dire) return DireSpawnLocation;
+
+	return FVector::ZeroVector; // Дефолт
+}
+
 void AMD_GameMode::WaitingForPlayers()
 {
 	const float Delay = 2.0f; // Задержка в секундах
@@ -142,8 +150,8 @@ void AMD_GameMode::InProgress()
 			PC->SetMatchMode(MatchStage);
 
 			// Находим точку спавна (например, PlayerStart)
-			AActor* SpawnPoint = FindPlayerStart(PC);
-			FVector Loc = SpawnPoint ? SpawnPoint->GetActorLocation() : FVector::ZeroVector;
+			// AActor* SpawnPoint = GetBaseLocation(FindPlayerStart(PC);
+			FVector Loc = GetBaseLocation(PC->GetTeam()); // SpawnPoint ? SpawnPoint->GetActorLocation() : FVector::ZeroVector;
 
 			FActorSpawnParameters HeroSpawnParams;
 			HeroSpawnParams.Owner = PC;
