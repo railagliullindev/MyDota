@@ -1,6 +1,6 @@
 // Rail Agliullin Dev. All Rights Reserved
 
-#include "Widgets/HUD/HeroIconWidget.h"
+#include "Widgets/InGame/HeroIconWidget.h"
 
 #include "Components/Border.h"
 #include "Components/Image.h"

@@ -1,6 +1,6 @@
 // Rail Agliullin Dev. All Rights Reserved
 
-#include "Widgets/HUD/MD_HeroDashboard.h"
+#include "Widgets/InGame/HeroDashboard.h"
 
 #include "GameplayEffectTypes.h"
 #include "AbilitySystem/MD_AttributeSet.h"
@@ -28,8 +28,6 @@ void UMD_HeroDashboard::NativeConstruct()
 		ASC->GetGameplayAttributeValueChangeDelegate(AS->GetTotalHealthRegenAttribute()).AddUObject(this, &UMD_HeroDashboard::UpdateHealthRegen);
 		ASC->GetGameplayAttributeValueChangeDelegate(AS->GetManaAttribute()).AddUObject(this, &UMD_HeroDashboard::UpdateMana);
 		ASC->GetGameplayAttributeValueChangeDelegate(AS->GetManaRegenAttribute()).AddUObject(this, &UMD_HeroDashboard::UpdateManaRegen);
-
-		// 1. Подписываемся на изменения
 		ASC->GetGameplayAttributeValueChangeDelegate(AS->GetHealthRegenAttribute()).AddUObject(this, &UMD_HeroDashboard::UpdateHealthRegen);
 
 		const FOnAttributeChangeData FakeAttributeChangeData;

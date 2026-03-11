@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameMode.h"
-#include "Widgets/HUD/MinimapWIdget.h"
+#include "Widgets/InGame/MinimapWIdget.h"
 #include "MD_GameMode.generated.h"
 
 class AFogOfWarManager;

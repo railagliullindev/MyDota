@@ -18,7 +18,7 @@
 #include "Net/UnrealNetwork.h"
 #include "Pawns/MD_CameraPawn.h"
 #include "Systems/FogOfWar/FogOfWarManager.h"
-#include "Widgets/Overhead/MD_OverheadWidget.h"
+#include "Widgets/World/WorldOverheadWidget.h"
 
 AMD_CharacterBase::AMD_CharacterBase()
 {

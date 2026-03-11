@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "MD_OverheadWidget.generated.h"
+#include "WorldOverheadWidget.generated.h"
 
 class UProgressBar;
 /**

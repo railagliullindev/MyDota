@@ -1,6 +1,6 @@
 // Rail Agliullin Dev. All Rights Reserved
 
-#include "Widgets/HUD/MinimapWidget.h"
+#include "Widgets/InGame/MinimapWidget.h"
 
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"

@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "MD_HeroIconWidget.generated.h"
+#include "HeroStatusWidget.generated.h"
 
 class AMD_PlayerState;
 class UBorder;

@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameplayEffectTypes.h"
 #include "Blueprint/UserWidget.h"
-#include "MD_HeroDashboard.generated.h"
+#include "HeroDashboard.generated.h"
 
 class UTextBlock;
 class UMD_AttributeSet;

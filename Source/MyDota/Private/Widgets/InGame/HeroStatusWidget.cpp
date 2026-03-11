@@ -1,6 +1,6 @@
 // Rail Agliullin Dev. All Rights Reserved
 
-#include "Widgets/HUD/Game/Match/MD_HeroIconWidget.h"
+#include "Widgets/InGame/HeroStatusWidget.h"
 
 #include "Components/Border.h"
 #include "Components/Image.h"
