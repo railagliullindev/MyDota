@@ -51,7 +51,7 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FOnUnitVisibilityChanged, AActor*, const bo
  * - FVisionSource - структура источника видимости
  * - IMDTeamInterface - интерфейс для определения команды
  */
-UCLASS()
+UCLASS(Abstract, HideDropdown)
 class MYDOTA_API AFogOfWarManager : public AActor
 {
 	GENERATED_BODY()

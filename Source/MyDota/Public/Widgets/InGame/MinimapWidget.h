@@ -38,10 +38,6 @@ public:
 	 * ============================================================================ */
 protected:
 
-	/** Датаассет с информацией о героях (иконки и т.д.) */
-	UPROPERTY(EditDefaultsOnly, Category = "Setup")
-	UMDHeroInfoDataAsset* HeroInfoData;
-
 	/** Класс виджета иконки героя */
 	UPROPERTY(EditDefaultsOnly, Category = "Setup")
 	TSubclassOf<UUserWidget> IconHeroClass;

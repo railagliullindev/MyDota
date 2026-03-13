@@ -13,18 +13,20 @@ struct FHeroInfo
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	FName HeroName;
+	FName HeroName = NAME_None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TSubclassOf<AMD_CharacterBase> HeroClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	UTexture2D* HeroIcon;
+	UTexture2D* HeroIcon = nullptr;
 
-	FHeroInfo()
-		: HeroName(NAME_None)
-		, HeroIcon(nullptr)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UTexture2D* HeroMinimapIcon = nullptr;
+
+	bool IsValid() const
 	{
+		return HeroName != NAME_None;
 	}
 };
 
@@ -38,7 +40,7 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Hero Info")
 	TArray<FHeroInfo> HeroesInfo;
 
-	UTexture2D* GetIconForHero(AActor* InHero) const
+	UTexture2D* GetIconForHero(const AActor* InHero) const
 	{
 		if (!InHero) return nullptr;
 		for (const auto& Info : HeroesInfo)
@@ -47,4 +49,24 @@ public:
 		}
 		return nullptr;
 	};
+
+	UTexture2D* GetMinimapIconForHero(const AActor* InHero) const
+	{
+		if (!InHero) return nullptr;
+		for (const auto& Info : HeroesInfo)
+		{
+			if (InHero->IsA(Info.HeroClass)) return Info.HeroMinimapIcon;
+		}
+		return nullptr;
+	};
+
+	FHeroInfo GetHeroInfoDataAsset(const AActor* InHero) const
+	{
+		if (!InHero) return FHeroInfo();
+		for (const auto& Info : HeroesInfo)
+		{
+			if (InHero->IsA(Info.HeroClass)) return Info;
+		}
+		return FHeroInfo();
+	}
 };

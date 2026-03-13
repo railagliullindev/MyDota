@@ -16,7 +16,6 @@ UGA_DraftManager::UGA_DraftManager()
 void UGA_DraftManager::ActivateAbility(
 	const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
-	UE_LOG(LogTemp, Warning, TEXT("Activate Draft Ability"));
 
 	PC = Cast<AMD_PlayerController>(GetActorInfo().PlayerController.Get());
 

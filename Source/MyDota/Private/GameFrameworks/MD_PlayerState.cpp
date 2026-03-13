@@ -6,6 +6,7 @@
 #include "AbilitySystem/MD_AttributeSet.h"
 #include "DataAssets/HeroInfo/MDHeroInfoDataAsset.h"
 #include "Net/UnrealNetwork.h"
+#include "Subsystems/MD_DataSubsystem.h"
 
 AMD_PlayerState::AMD_PlayerState()
 {
@@ -30,7 +31,11 @@ UMD_AttributeSet* AMD_PlayerState::GetAttributeSet() const
 
 void AMD_PlayerState::OnRep_Team()
 {
-	// TODO: Что бы клиент мгновенно узнал о нахначенной стороне
+	// Клиент узнает о своей команде
+	UE_LOG(LogTemp, Log, TEXT("Player %s team is now %d"), *GetPlayerName(), (uint8)Team);
+
+	// Можно обновить цвет UI, миникарту и т.д.
+	// OnTeamChanged.Broadcast(Team);
 }
 
 void AMD_PlayerState::OnRep_RespawnTimeFinished()
@@ -55,15 +60,17 @@ void AMD_PlayerState::OnRep_RespawnTimeFinished()
 
 void AMD_PlayerState::OnRep_HeroId()
 {
-	if (!HeroInfoData)
+	const auto DataSubsystem = UMD_DataSubsystem::Get(this);
+	if (!DataSubsystem)
 	{
 		UE_LOG(LogTemp, Error, TEXT("Forget assign HeroInfoData in AMD_PlayerState"));
 		return;
 	}
 
-	if (HeroInfoData->HeroesInfo.IsValidIndex(HeroId))
+	FHeroInfo HeroInfo = DataSubsystem->GetHeroInfo(HeroId);
+	if (HeroInfo.IsValid())
 	{
-		SelectedHeroClass = HeroInfoData->HeroesInfo[HeroId].HeroClass;
+		SelectedHeroClass = HeroInfo.HeroClass;
 		UE_LOG(LogTemp, Log, TEXT("PS: setup HeroClass success"));
 	}
 }

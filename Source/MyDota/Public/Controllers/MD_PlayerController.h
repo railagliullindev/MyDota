@@ -46,7 +46,7 @@ public:
 	}
 
 	UFUNCTION(Client, Reliable, Category = "MatchStage")
-	void SetMatchMode(EMathStage InMatchStage);
+	void SetMatchMode(EMatchStage InMatchStage);
 	void OnUnitVisibilityChanged(AActor* Actor, bool bArg);
 
 protected:
@@ -65,6 +65,9 @@ protected:
 
 	UFUNCTION(Server, Reliable)
 	void Server_AttackTarget(AActor* Target);
+
+	UFUNCTION(Server, Reliable)
+	void Server_NotifyReadyToInitialize();
 
 	void SpawnHero();
 
@@ -100,6 +103,6 @@ protected:
 private:
 
 	FGenericTeamId GenericTeamId;
-	EMathStage MatchStage;
+	EMatchStage MatchStage;
 	FVector CachedDestination;
 };

@@ -5,55 +5,12 @@
 #include "Components/Border.h"
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
-#include "GameFramework/GameStateBase.h"
-#include "GameFrameworks/MD_GameState.h"
-#include "GameFrameworks/MD_PlayerState.h"
 
 void UMD_HeroIconWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	if (AMD_GameState* GS = GetWorld()->GetGameState<AMD_GameState>())
-	{
-		const bool bIsRadiant = PlayerIndex < 5 ? true : false;
-		const int32 Team = bIsRadiant ? 2 : 1;
-		int32 Iter = bIsRadiant ? PlayerIndex : PlayerIndex - 5;
-
-		int32 PlayerID = -1;
-		for (const auto& Element : GS->HeroesInfo)
-		{
-			// 0 - none, 1 - Dire, 2 - Radian
-			if (Element.TeamId == Team)
-			{
-				if (Iter == 0)
-				{
-					PlayerID = Element.PlayerId;
-					break;
-				}
-				else
-				{
-					Iter -= 1;
-				}
-			}
-		}
-
-		if (PlayerID == -1) return;
-
-		for (auto Player : GS->PlayerArray)
-		{
-			if (Player->GetPlayerId() == PlayerID)
-			{
-				// Например, берем 2-го игрока из списка для этой конкретной иконки
-				PS = Cast<AMD_PlayerState>(Player);
-				break;
-			}
-		}
-
-		if (PS)
-		{
-			PS->OnRespawnStatusChanged.AddDynamic(this, &UMD_HeroIconWidget::UpdateDeathVisuals);
-		}
-	}
+	// TODO: Пересобрать решение
 }
 
 void UMD_HeroIconWidget::UpdateDeathVisuals(bool bIsDead, float SecondsLeft)

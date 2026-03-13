@@ -74,17 +74,56 @@ enum class EMDTeam : uint8
 	Neutral
 };
 
+UENUM(BlueprintType)
+enum EChangeType
+{
+	None UMETA(DisplayName = "None"),
+	PlayerJoined UMETA(DisplayName = "Player Joined"),
+	PlayerLeft UMETA(DisplayName = "Player Left"),
+	HeroSelected UMETA(DisplayName = "Hero Selected"),
+	TeamChanged UMETA(DisplayName = "Team Changed")
+};
+
 USTRUCT(BlueprintType)
-struct FMatchHeroesInfo
+struct FPlayerTeamInfo
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 PlayerId = -1;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 Team = -1;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 HeroId = -1;
+
+	UPROPERTY(BlueprintReadOnly)
+	FString PlayerName;
+
+	UPROPERTY(BlueprintReadOnly)
+	TEnumAsByte<EChangeType> ChangeType = EChangeType::None;
+
+public:
+
+	EMDTeam GetTeam() const
+	{
+		return static_cast<EMDTeam>(PlayerId);
+	}
+
+	void SetTeam(EMDTeam NewTeam)
+	{
+		Team = static_cast<int32>(NewTeam);
+	}
+};
+
+USTRUCT(BlueprintType)
+struct FTestStruct
 {
 	GENERATED_BODY()
 
 	UPROPERTY()
 	int32 PlayerId = -1;
-
 	UPROPERTY()
-	int32 TeamId = -1;
-
-	UPROPERTY()
-	int32 HeroId = -1;
+	int32 RandomInt = 0;
 };

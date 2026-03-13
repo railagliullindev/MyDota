@@ -22,7 +22,7 @@ void AMD_GameMode::BeginPlay()
 	GS = GetGameState<AMD_GameState>();
 	checkf(GS, TEXT("Game state is not AMD_GameState"));
 
-	SetMatchStage(EMathStage::WaitingForPlayers);
+	SetMatchStage(EMatchStage::WaitingForPlayers);
 
 	// Спавним менеджер для Radiant
 	RadiantFogManager = GetWorld()->SpawnActor<AFogOfWarManager>(FogManagerClass, FVector::ZeroVector, FRotator::ZeroRotator);
@@ -35,28 +35,44 @@ void AMD_GameMode::BeginPlay()
 
 void AMD_GameMode::PostLogin(APlayerController* NewPlayer)
 {
-	if (MatchStage != EMathStage::WaitingForPlayers) return;
+	if (MatchStage != EMatchStage::WaitingForPlayers)
+	{
+		// Игрок пытается подключиться не на той стадии - кикаем
+		NewPlayer->ConsoleCommand("disconnect");
+		return;
+	}
+
 	if (!NewPlayer) return;
 
 	Super::PostLogin(NewPlayer);
 
-	// Установка стороны
-	AMD_PlayerState* PS = NewPlayer->GetPlayerState<AMD_PlayerState>();
-	if (PS)
-	{
-		const EMDTeam SetTeam = (GetNumPlayers() % 2 == 0) ? EMDTeam::Radiant : EMDTeam::Dire;
-
-		GS->RegisterNewPlayer(PS->GetPlayerId(), (int32)SetTeam);
-		PS->Team = SetTeam;
-	}
+	InitializePlayerData(NewPlayer);
 
 	SpawnCameraForPlayer(NewPlayer);
 }
 
-void AMD_GameMode::ProcessHeroSelection(const APlayerController* PC, int32 RequestedHeroId)
+void AMD_GameMode::Logout(AController* Exiting)
+{
+	UE_LOG(LogTemp, Warning, TEXT("@@@ LOGOUT %s"), *Exiting->GetName());
+
+	if (APlayerController* PC = Cast<APlayerController>(Exiting))
+	{
+		if (APlayerState* PS = PC->GetPlayerState<APlayerState>())
+		{
+			if (GS)
+			{
+				// Удаляем игрока через GameState (вызовет делегаты!)
+				GS->RemovePlayer(PS);
+			}
+		}
+	}
+
+	Super::Logout(Exiting);
+}
+
+void AMD_GameMode::ProcessHeroSelection(const APlayerController* PC, const int32 RequestedHeroId)
 {
 	if (!GS || !PC) return;
-
 	if (GS->IsHeroAlreadyPicked(RequestedHeroId)) return;
 
 	if (AMD_PlayerState* PS = PC->GetPlayerState<AMD_PlayerState>())
@@ -64,35 +80,27 @@ void AMD_GameMode::ProcessHeroSelection(const APlayerController* PC, int32 Reque
 		PS->HeroId = RequestedHeroId;
 		PS->OnRep_HeroId();
 
-		GS->RegisterHeroSelection(PS->GetPlayerId(), RequestedHeroId);
+		// Обновляем GameState (вызовет делегат OnPlayerHeroSelected!)
+		GS->UpdatePlayerHero(PS, RequestedHeroId);
 
 		if (GS->AreAllHeroesSelected())
 		{
-			SetMatchStage(EMathStage::InProgress);
+			SetMatchStage(EMatchStage::PreGame);
 		}
 	}
 }
 
-void AMD_GameMode::SetMatchStage(EMathStage NewStage)
+void AMD_GameMode::SetMatchStage(EMatchStage NewStage)
 {
 	MatchStage = NewStage;
 
 	switch (MatchStage)
 	{
-		case EMathStage::WaitingForPlayers:
-			UE_LOG(LogTemp, Warning, TEXT("AMD_GameMode::SetMatchStage WAITINGFORPLAYERS"));
-			WaitingForPlayers();
-			break;
-		case EMathStage::Draft:
-			UE_LOG(LogTemp, Warning, TEXT("AMD_GameMode::SetMatchStage DRAFT"));
-			Draft();
-			break;
-		case EMathStage::PreGame: UE_LOG(LogTemp, Warning, TEXT("AMD_GameMode::SetMatchStage PRE GAME")); break;
-		case EMathStage::InProgress:
-			UE_LOG(LogTemp, Warning, TEXT("AMD_GameMode::SetMatchStage IN PROGRESS"));
-			InProgress();
-			break;
-		case EMathStage::PostGame: UE_LOG(LogTemp, Warning, TEXT("AMD_GameMode::SetMatchStage POST GAME")); break;
+		case EMatchStage::WaitingForPlayers: WaitingForPlayers(); break;
+		case EMatchStage::Draft: Draft(); break;
+		case EMatchStage::PreGame: PreGame(); break;
+		case EMatchStage::InProgress: InProgress(); break;
+		case EMatchStage::PostGame: UE_LOG(LogTemp, Log, TEXT("AMD_GameMode::SetMatchStage POST GAME")); break;
 	}
 
 	GS->SetMatchStage(NewStage);
@@ -106,6 +114,18 @@ FVector AMD_GameMode::GetBaseLocation(EMDTeam Team) const
 	return FVector::ZeroVector; // Дефолт
 }
 
+void AMD_GameMode::InitializePlayerData(APlayerController* NewPC)
+{
+	AMD_PlayerState* PS = NewPC->GetPlayerState<AMD_PlayerState>();
+	if (!PS || !GS) return;
+
+	EMDTeam SetTeam = GS->GetSmallestTeam();
+	PS->Team = SetTeam;
+
+	// Обновляем GameState
+	GS->UpdatePlayerTeam(PS, SetTeam);
+}
+
 void AMD_GameMode::WaitingForPlayers()
 {
 	const float Delay = 2.0f; // Задержка в секундах
@@ -115,7 +135,7 @@ void AMD_GameMode::WaitingForPlayers()
 		TimerHandle,
 		[this]()
 		{
-			SetMatchStage(EMathStage::Draft);
+			SetMatchStage(EMatchStage::Draft);
 		},
 		Delay, false);
 }
@@ -126,21 +146,37 @@ void AMD_GameMode::Draft()
 
 void AMD_GameMode::PreGame()
 {
+	// Задержка 3 секунды перед добавлением данных
+	FTimerHandle TimerHandle;
+	FTimerDelegate TimerDel;
+
+	// Передаем контроллер в лямбду, чтобы знать, кого добавлять
+	TimerDel.BindLambda(
+		[this]()
+		{
+			SetMatchStage(EMatchStage::InProgress);
+		});
+
+	GetWorldTimerManager().SetTimer(TimerHandle, TimerDel, 3.0f, false);
 }
 
 void AMD_GameMode::InProgress()
 {
-	RadiantFogManager->StartFogOfWar();
-	DireFogManager->StartFogOfWar();
+	if (RadiantFogManager && DireFogManager)
+	{
+		RadiantFogManager->StartFogOfWar();
+		DireFogManager->StartFogOfWar();
+	}
+	else
+	{
+		UE_LOG(LogGameMode, Error, TEXT("Fog managers not created"));
+	}
 
 	// Проходим по всем контроллерам в матче
 	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
 	{
 		AMD_PlayerController* PC = Cast<AMD_PlayerController>(It->Get());
 		if (!PC) continue;
-
-		FString RoleString = HasAuthority() ? TEXT("ListenServer-Host") : TEXT("Remote-Client");
-		UE_LOG(LogTemp, Log, TEXT("[%s] Перевод на старт - %s"), *RoleString, *PC->GetName());
 
 		AMD_PlayerState* PS = PC->GetPlayerState<AMD_PlayerState>();
 

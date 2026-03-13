@@ -71,7 +71,4 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, Category = "GAS")
 	UMD_AttributeSet* AttributeSet;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Setup")
-	UMDHeroInfoDataAsset* HeroInfoData;
 };

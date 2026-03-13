@@ -8,6 +8,7 @@
 #include "Controllers/MD_PlayerController.h"
 #include "DataAssets/HeroInfo/MDHeroInfoDataAsset.h"
 #include "GameFrameworks/MD_GameState.h"
+#include "Subsystems/MD_DataSubsystem.h"
 #include "Systems/FogOfWar/FogOfWarManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogMinimap, Log, All);
@@ -82,7 +83,7 @@ void UMinimapWidget::NativeDestruct()
 
 void UMinimapWidget::InitHeroIcons()
 {
-	if (!GS || !HeroInfoData || !IconHeroClass)
+	if (!GS || !IconHeroClass)
 	{
 		UE_LOG(LogMinimap, Warning, TEXT("Cannot init hero icons: missing dependencies"));
 		return;
@@ -373,10 +374,11 @@ UUserWidget* UMinimapWidget::CreateIconForHero(AActor* InActor)
 		CanvasSlot->SetAutoSize(true);
 	}
 
+	auto HeroInfo = UMD_DataSubsystem::Get(this)->GetHeroInfo(InActor);
 	// Устанавливаем иконку героя
-	if (HeroInfoData)
+	if (HeroInfo.IsValid())
 	{
-		if (UTexture2D* HeroIconTexture = HeroInfoData->GetIconForHero(InActor))
+		if (UTexture2D* HeroIconTexture = HeroInfo.HeroMinimapIcon)
 		{
 			if (UImage* HeroIconImage = Cast<UImage>(IconWidget->GetWidgetFromName(IconHeroImageName)))
 			{

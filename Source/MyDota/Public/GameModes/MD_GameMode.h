@@ -12,7 +12,7 @@ class AMD_GameState;
 class AMD_CharacterBase;
 
 UENUM()
-enum class EMathStage : uint8
+enum class EMatchStage : uint8
 {
 	WaitingForPlayers,
 	Draft,
@@ -24,7 +24,7 @@ enum class EMathStage : uint8
 /**
  *
  */
-UCLASS()
+UCLASS(Abstract, HideDropdown)
 class MYDOTA_API AMD_GameMode : public AGameMode
 {
 	GENERATED_BODY()
@@ -33,18 +33,18 @@ public:
 
 	AMD_GameMode();
 
-	virtual void BeginPlay() override;
-	virtual void PostLogin(APlayerController* NewPlayer) override;
-
-	void ProcessHeroSelection(const APlayerController* PC, int32 RequestedHeroId);
-
-	void SetMatchStage(EMathStage NewStage);
-
-	// Главная функция получения точки
+	void ProcessHeroSelection(const APlayerController* PC, const int32 RequestedHeroId);
 	FVector GetBaseLocation(EMDTeam Team) const;
+
+	void InitializePlayerData(APlayerController* NewPC);
 
 protected:
 
+	virtual void BeginPlay() override;
+	virtual void PostLogin(APlayerController* NewPlayer) override;
+	virtual void Logout(AController* Exiting) override;
+
+	void SetMatchStage(EMatchStage NewStage);
 	void WaitingForPlayers();
 	void Draft();
 	void PreGame();
@@ -76,5 +76,12 @@ private:
 	UPROPERTY()
 	AFogOfWarManager* DireFogManager;
 
-	EMathStage MatchStage;
+	EMatchStage MatchStage;
+
+	// Храним прямые ссылки на PlayerController для быстрого доступа
+	UPROPERTY()
+	TArray<APlayerController*> RadiantPlayers;
+
+	UPROPERTY()
+	TArray<APlayerController*> DirePlayers;
 };

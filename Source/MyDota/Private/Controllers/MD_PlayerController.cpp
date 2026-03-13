@@ -66,15 +66,15 @@ void AMD_PlayerController::OnRep_Hero()
 {
 }
 
-void AMD_PlayerController::SetMatchMode_Implementation(EMathStage InMatchStage)
+void AMD_PlayerController::SetMatchMode_Implementation(EMatchStage InMatchStage)
 {
 	MatchStage = InMatchStage;
 
 	switch (MatchStage)
 	{
-		case EMathStage::Draft: break;
-		case EMathStage::PreGame: break;
-		case EMathStage::InProgress:
+		case EMatchStage::Draft: break;
+		case EMatchStage::PreGame: break;
+		case EMatchStage::InProgress:
 			if (const ULocalPlayer* LocalPlayer = GetLocalPlayer())
 			{
 				if (UEnhancedInputLocalPlayerSubsystem* Subsystem = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
@@ -92,7 +92,7 @@ void AMD_PlayerController::SetMatchMode_Implementation(EMathStage InMatchStage)
 				}
 			}
 			break;
-		case EMathStage::PostGame: break;
+		case EMatchStage::PostGame: break;
 		default: break;
 	}
 }
@@ -122,6 +122,11 @@ void AMD_PlayerController::SetupInputComponent()
 		{
 			EnhancedInput->BindAction(AttackAction, ETriggerEvent::Started, this, &AMD_PlayerController::InputAttack);
 		}
+	}
+
+	if (IsLocalController())
+	{
+		Server_NotifyReadyToInitialize();
 	}
 }
 
@@ -187,6 +192,15 @@ void AMD_PlayerController::Server_AttackTarget_Implementation(AActor* Target)
 		Payload.Target = Target;
 
 		Hero->GetAbilitySystemComponent()->HandleGameplayEvent(MyDotaTags::Event_Ability_RequestAttack, &Payload);
+	}
+}
+
+void AMD_PlayerController::Server_NotifyReadyToInitialize_Implementation()
+{
+	if (AMD_GameMode* GM = Cast<AMD_GameMode>(GetWorld()->GetAuthGameMode()))
+	{
+		// Передаем управление в GameMode
+		// GM->InitializePlayerData(this);
 	}
 }
 
