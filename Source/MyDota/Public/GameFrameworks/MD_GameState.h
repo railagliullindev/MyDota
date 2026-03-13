@@ -16,6 +16,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTeamCompositionChanged, EMDTeam, 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnPlayerJoinedTeam, int32, PlayerId, EMDTeam, Team);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnPlayerLeftTeam, int32, PlayerId, EMDTeam, Team);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnPlayerHeroSelected, int32, PlayerId, int32, HeroId, EMDTeam, Team);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnGameTimeChanged);
 
 USTRUCT()
 struct FTeamUnits
@@ -76,11 +77,6 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Teams")
 	bool GetPlayerInfo(int32 PlayerId, FPlayerTeamInfo& OutInfo) const;
 
-	// Для совместимости со старым кодом, но лучше использовать новые методы
-	void RegisterNewPlayer(const int32 PlayerId, const int32 TeamId); /* Deprecated */
-
-	void RegisterHeroSelection(const int32 InPlayerId, const int32 HeroId); /* Deprecated */
-
 	// Установка стадии матча
 	void SetMatchStage(EMatchStage NewStage);
 
@@ -128,19 +124,32 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnPlayerHeroSelected OnPlayerHeroSelected;
 
+	/** Вызывается когда игра переходит на новую стадию */
+	UPROPERTY(BlueprintAssignable)
+	FOnGameTimeChanged OnGameTimeChanged;
+
 	// Вспомогательная структура для репликации последнего изменения
 	UPROPERTY(ReplicatedUsing = OnRep_LastChange)
 	FPlayerTeamInfo LastTeamChange;
+
+	UPROPERTY(ReplicatedUsing = OnRep_UpdateStageEndTime, BlueprintReadOnly)
+	float StageEndTime = 0.0f; // Время (Timestamp), когда стадия завершится
+
+	UPROPERTY(ReplicatedUsing = OnRep_UpdateStageEndTime, BlueprintReadOnly)
+	float MatchStartTime = 0.0f; // Время (ServerWorldTime), когда счетчик станет 00:00
 
 protected:
 
 	// --- OnRep функции ---
 
 	UFUNCTION()
-	void OnRep_MatchStage();
+	void OnRep_MatchStage() const;
 
 	UFUNCTION()
-	void OnRep_LastChange();
+	void OnRep_LastChange() const;
+
+	UFUNCTION()
+	void OnRep_UpdateStageEndTime() const;
 
 	// Конфигурация
 	UPROPERTY(EditDefaultsOnly, Category = "Match Setup")
@@ -164,5 +173,5 @@ public:
 	TArray<FPlayerTeamInfo> PlayersInfo;
 
 	UFUNCTION()
-	void OnRep_PlayersInfo();
+	void OnRep_PlayersInfo() const;
 };

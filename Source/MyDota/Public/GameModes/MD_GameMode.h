@@ -14,8 +14,10 @@ class AMD_CharacterBase;
 UENUM()
 enum class EMatchStage : uint8
 {
+	None,
 	WaitingForPlayers,
 	Draft,
+	PrepareForBattle,
 	PreGame,
 	InProgress,
 	PostGame
@@ -36,7 +38,7 @@ public:
 	void ProcessHeroSelection(const APlayerController* PC, const int32 RequestedHeroId);
 	FVector GetBaseLocation(EMDTeam Team) const;
 
-	void InitializePlayerData(APlayerController* NewPC);
+	void InitializePlayerData(const APlayerController* NewPC) const;
 
 protected:
 
@@ -44,9 +46,9 @@ protected:
 	virtual void PostLogin(APlayerController* NewPlayer) override;
 	virtual void Logout(AController* Exiting) override;
 
-	void SetMatchStage(EMatchStage NewStage);
 	void WaitingForPlayers();
 	void Draft();
+	void PrepareForBattle();
 	void PreGame();
 	void InProgress();
 	void PostGame();
@@ -62,7 +64,6 @@ protected:
 	UPROPERTY()
 	AMD_GameState* GS;
 
-	// Координаты (можно задать прямо в BP-версии GameMode)
 	UPROPERTY(EditAnywhere, Category = "Spawning")
 	FVector RadiantSpawnLocation;
 
@@ -78,10 +79,20 @@ private:
 
 	EMatchStage MatchStage;
 
-	// Храним прямые ссылки на PlayerController для быстрого доступа
-	UPROPERTY()
-	TArray<APlayerController*> RadiantPlayers;
+	void StartStageTimer(const float Duration);
+	void UpdateStageTimer();
 
-	UPROPERTY()
-	TArray<APlayerController*> DirePlayers;
+	void StartGameClock();
+
+	FTimerHandle StageTimerHandle;
+
+	void MoveToNextStage();
+
+	const float WaitingForPlayersTime = 3.0f;
+	const float DraftTime = 60.0f;
+	const float PrepareForBattleTime = 5.f;
+	const float PreGameTime = 30.0f;
+	const float PostGameTime = 15.0f;
+
+	int32 MatchTime;
 };

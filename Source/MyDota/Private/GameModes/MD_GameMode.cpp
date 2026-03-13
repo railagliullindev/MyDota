@@ -13,6 +13,8 @@ AMD_GameMode::AMD_GameMode()
 	PlayerControllerClass = AMD_PlayerController::StaticClass();
 	PlayerStateClass = AMD_PlayerState::StaticClass();
 	GameStateClass = AMD_GameState::StaticClass();
+
+	MatchStage = EMatchStage::None;
 }
 
 void AMD_GameMode::BeginPlay()
@@ -22,8 +24,6 @@ void AMD_GameMode::BeginPlay()
 	GS = GetGameState<AMD_GameState>();
 	checkf(GS, TEXT("Game state is not AMD_GameState"));
 
-	SetMatchStage(EMatchStage::WaitingForPlayers);
-
 	// Спавним менеджер для Radiant
 	RadiantFogManager = GetWorld()->SpawnActor<AFogOfWarManager>(FogManagerClass, FVector::ZeroVector, FRotator::ZeroRotator);
 	if (RadiantFogManager) RadiantFogManager->AssignedTeamID = EMDTeam::Radiant;
@@ -31,6 +31,8 @@ void AMD_GameMode::BeginPlay()
 	// Спавним менеджер для Dire
 	DireFogManager = GetWorld()->SpawnActor<AFogOfWarManager>(FogManagerClass, FVector::ZeroVector, FRotator::ZeroRotator);
 	if (DireFogManager) DireFogManager->AssignedTeamID = EMDTeam::Dire;
+
+	MoveToNextStage();
 }
 
 void AMD_GameMode::PostLogin(APlayerController* NewPlayer)
@@ -85,28 +87,12 @@ void AMD_GameMode::ProcessHeroSelection(const APlayerController* PC, const int32
 
 		if (GS->AreAllHeroesSelected())
 		{
-			SetMatchStage(EMatchStage::PreGame);
+			MoveToNextStage();
 		}
 	}
 }
 
-void AMD_GameMode::SetMatchStage(EMatchStage NewStage)
-{
-	MatchStage = NewStage;
-
-	switch (MatchStage)
-	{
-		case EMatchStage::WaitingForPlayers: WaitingForPlayers(); break;
-		case EMatchStage::Draft: Draft(); break;
-		case EMatchStage::PreGame: PreGame(); break;
-		case EMatchStage::InProgress: InProgress(); break;
-		case EMatchStage::PostGame: UE_LOG(LogTemp, Log, TEXT("AMD_GameMode::SetMatchStage POST GAME")); break;
-	}
-
-	GS->SetMatchStage(NewStage);
-}
-
-FVector AMD_GameMode::GetBaseLocation(EMDTeam Team) const
+FVector AMD_GameMode::GetBaseLocation(const EMDTeam Team) const
 {
 	if (Team == EMDTeam::Radiant) return RadiantSpawnLocation;
 	if (Team == EMDTeam::Dire) return DireSpawnLocation;
@@ -114,7 +100,7 @@ FVector AMD_GameMode::GetBaseLocation(EMDTeam Team) const
 	return FVector::ZeroVector; // Дефолт
 }
 
-void AMD_GameMode::InitializePlayerData(APlayerController* NewPC)
+void AMD_GameMode::InitializePlayerData(const APlayerController* NewPC) const
 {
 	AMD_PlayerState* PS = NewPC->GetPlayerState<AMD_PlayerState>();
 	if (!PS || !GS) return;
@@ -128,40 +114,25 @@ void AMD_GameMode::InitializePlayerData(APlayerController* NewPC)
 
 void AMD_GameMode::WaitingForPlayers()
 {
-	const float Delay = 2.0f; // Задержка в секундах
-
-	FTimerHandle TimerHandle;
-	GetWorldTimerManager().SetTimer(
-		TimerHandle,
-		[this]()
-		{
-			SetMatchStage(EMatchStage::Draft);
-		},
-		Delay, false);
+	StartStageTimer(WaitingForPlayersTime);
 }
 
 void AMD_GameMode::Draft()
 {
+	StartStageTimer(DraftTime);
+}
+
+void AMD_GameMode::PrepareForBattle()
+{
+	StartStageTimer(PrepareForBattleTime);
 }
 
 void AMD_GameMode::PreGame()
 {
-	// Задержка 3 секунды перед добавлением данных
-	FTimerHandle TimerHandle;
-	FTimerDelegate TimerDel;
+	// StartStageTimer(PreGameTime);
 
-	// Передаем контроллер в лямбду, чтобы знать, кого добавлять
-	TimerDel.BindLambda(
-		[this]()
-		{
-			SetMatchStage(EMatchStage::InProgress);
-		});
+	StartGameClock();
 
-	GetWorldTimerManager().SetTimer(TimerHandle, TimerDel, 3.0f, false);
-}
-
-void AMD_GameMode::InProgress()
-{
 	if (RadiantFogManager && DireFogManager)
 	{
 		RadiantFogManager->StartFogOfWar();
@@ -210,6 +181,10 @@ void AMD_GameMode::InProgress()
 	}
 }
 
+void AMD_GameMode::InProgress()
+{
+}
+
 void AMD_GameMode::PostGame()
 {
 }
@@ -233,4 +208,66 @@ void AMD_GameMode::SpawnCameraForPlayer(APlayerController* NewPlayer)
 	{
 		NewPlayer->Possess(CameraPawn);
 	}
+}
+
+void AMD_GameMode::StartStageTimer(const float Duration)
+{
+	GetWorldTimerManager().ClearTimer(StageTimerHandle);
+
+	MatchTime = Duration;
+
+	// Конечная точка = текущее серверное время + длительность
+	GS->StageEndTime = GS->GetServerWorldTimeSeconds() + Duration;
+
+	// Запускаем ежесекундный тик для обновления оставшегося времени
+	GetWorldTimerManager().SetTimer(StageTimerHandle, this, &AMD_GameMode::UpdateStageTimer, 1.0f, true);
+}
+
+void AMD_GameMode::UpdateStageTimer()
+{
+	MatchTime -= 1.0f;
+
+	if (MatchTime <= 0)
+	{
+		GetWorldTimerManager().ClearTimer(StageTimerHandle);
+		MoveToNextStage();
+	}
+}
+
+void AMD_GameMode::StartGameClock()
+{
+	MatchTime = GS->GetServerWorldTimeSeconds() + PreGameTime;
+	GS->MatchStartTime = MatchTime;
+
+	GetWorldTimerManager().ClearTimer(StageTimerHandle);
+}
+
+void AMD_GameMode::MoveToNextStage()
+{
+	uint8 NextIndex = static_cast<uint8>(MatchStage) + 1;
+
+	// Проверка на выход за пределы Enum
+	if (NextIndex >= static_cast<uint8>(EMatchStage::PostGame) + 1) return;
+
+	EMatchStage NewStage = static_cast<EMatchStage>(NextIndex);
+	MatchStage = NewStage;
+
+	UE_LOG(LogTemp, Warning, TEXT("Update MatchStage - %hhd"), MatchStage)
+
+	// Реплицируем стейт через GameState
+	GS->MatchStage = NewStage;
+
+	// Настраиваем логику новой стадии
+	switch (MatchStage)
+	{
+		case EMatchStage::WaitingForPlayers: WaitingForPlayers(); break;
+		case EMatchStage::Draft: Draft(); break;
+		case EMatchStage::PrepareForBattle: PrepareForBattle(); break;
+		case EMatchStage::PreGame: PreGame(); break;
+		case EMatchStage::InProgress: InProgress(); break;
+		case EMatchStage::PostGame: PostGame(); break;
+		default: break;
+	}
+
+	GS->SetMatchStage(NewStage);
 }

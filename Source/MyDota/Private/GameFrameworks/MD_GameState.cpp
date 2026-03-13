@@ -36,6 +36,9 @@ void AMD_GameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLif
 
 	DOREPLIFETIME(AMD_GameState, MatchStage);
 	DOREPLIFETIME_CONDITION(AMD_GameState, LastTeamChange, COND_SkipOwner);
+
+	DOREPLIFETIME(AMD_GameState, StageEndTime);
+	DOREPLIFETIME(AMD_GameState, MatchStartTime);
 }
 
 int32 AMD_GameState::GetPlayersCountInTeam(const EMDTeam Team) const
@@ -201,19 +204,18 @@ TArray<FPlayerTeamInfo> AMD_GameState::GetPlayersInTeam(EMDTeam Team) const
 	return Result;
 }
 
-void AMD_GameState::OnRep_PlayersInfo()
+void AMD_GameState::OnRep_PlayersInfo() const
 {
 	FString NetPrefix = GetWorld()->GetNetMode() == NM_Client ? FString::Printf(TEXT("Client %d"), UE::GetPlayInEditorID()) : TEXT("Server");
 	// Логика на клиенте: например, обновить список игроков в HUD
 	UE_LOG(LogTemp, Log, TEXT("@@@ [ %s ] OnRep PI Updated. Array size: %d"), *NetPrefix, PlayersInfo.Num());
 }
 
-void AMD_GameState::OnRep_MatchStage()
+void AMD_GameState::OnRep_MatchStage() const
 {
 	switch (MatchStage)
 	{
 		case EMatchStage::Draft:
-			UE_LOG(LogTemp, Log, TEXT("Клиент: Начался драфт"));
 
 			// Находим локальный контроллер и говорим ему активировать Draft-абилку
 			if (AMD_PlayerController* PC = Cast<AMD_PlayerController>(GetWorld()->GetFirstPlayerController()))
@@ -225,8 +227,7 @@ void AMD_GameState::OnRep_MatchStage()
 			}
 			break;
 
-		case EMatchStage::InProgress:
-			UE_LOG(LogTemp, Warning, TEXT("Клиент: Игра началась"));
+		case EMatchStage::PreGame:
 
 			if (AMD_PlayerController* PC = Cast<AMD_PlayerController>(GetWorld()->GetFirstPlayerController()))
 			{
@@ -242,7 +243,7 @@ void AMD_GameState::OnRep_MatchStage()
 	}
 }
 
-void AMD_GameState::OnRep_LastChange()
+void AMD_GameState::OnRep_LastChange() const
 {
 	FString OwnerString = HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT");
 	// Этот метод вызывается на ВСЕХ клиентах, когда LastTeamChange реплицируется
@@ -261,6 +262,11 @@ void AMD_GameState::OnRep_LastChange()
 
 		default: break;
 	}
+}
+
+void AMD_GameState::OnRep_UpdateStageEndTime() const
+{
+	OnGameTimeChanged.Broadcast();
 }
 
 void AMD_GameState::BroadcastTeamChanges(EMDTeam ChangedTeam, int32 ChangedPlayerId, EMDTeam OldTeam)
@@ -335,12 +341,6 @@ bool AMD_GameState::IsHeroAlreadyPicked(const int32 HeroIndex) const
 	return false;
 }
 
-void AMD_GameState::RegisterHeroSelection(const int32 InPlayerId, const int32 HeroId)
-{
-	// Этот метод устарел, используйте UpdatePlayerHero
-	UE_LOG(LogTemp, Warning, TEXT("RegisterHeroSelection is deprecated, use UpdatePlayerHero instead"));
-}
-
 void AMD_GameState::RegisterUnit(AActor* Unit)
 {
 	if (!Unit) return;
@@ -363,10 +363,4 @@ void AMD_GameState::UnregisterUnit(AActor* Unit)
 	{
 		TeamUnits->AllUnits.Remove(Unit);
 	}
-}
-
-void AMD_GameState::RegisterNewPlayer(const int32 PlayerId, const int32 TeamId)
-{
-	// Этот метод устарел, используйте UpdatePlayerTeam
-	UE_LOG(LogTemp, Warning, TEXT("RegisterNewPlayer is deprecated, use UpdatePlayerTeam instead"));
 }

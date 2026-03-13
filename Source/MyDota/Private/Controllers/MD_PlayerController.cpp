@@ -72,9 +72,7 @@ void AMD_PlayerController::SetMatchMode_Implementation(EMatchStage InMatchStage)
 
 	switch (MatchStage)
 	{
-		case EMatchStage::Draft: break;
-		case EMatchStage::PreGame: break;
-		case EMatchStage::InProgress:
+		case EMatchStage::PreGame:
 			if (const ULocalPlayer* LocalPlayer = GetLocalPlayer())
 			{
 				if (UEnhancedInputLocalPlayerSubsystem* Subsystem = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
@@ -92,7 +90,6 @@ void AMD_PlayerController::SetMatchMode_Implementation(EMatchStage InMatchStage)
 				}
 			}
 			break;
-		case EMatchStage::PostGame: break;
 		default: break;
 	}
 }

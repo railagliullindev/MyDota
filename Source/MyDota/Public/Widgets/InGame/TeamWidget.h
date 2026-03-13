@@ -7,6 +7,7 @@
 #include "GameFrameworks/MD_GameState.h"
 #include "TeamWidget.generated.h"
 
+class UTextBlock;
 class UHeroSlotWidget;
 class AMD_PlayerState;
 
@@ -129,6 +130,9 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	UHeroSlotWidget* DireSlot_4;
 
+	UPROPERTY(meta = (BindWidget))
+	UTextBlock* TimeText;
+
 	/** События для Blueprint - вызываются при изменении состава */
 	UFUNCTION(BlueprintImplementableEvent, Category = "Team Widget")
 	void OnTeamDataChanged(EMDTeam Team);
@@ -157,6 +161,9 @@ protected:
 
 	UFUNCTION()
 	void HandlePlayerHeroSelected(int32 PlayerId, int32 HeroId, EMDTeam Team);
+
+	UFUNCTION()
+	void OnGameTimeChanged();
 
 	/** Обновить конкретную команду в UI */
 	UFUNCTION(BlueprintImplementableEvent, Category = "Team Widget")
@@ -223,7 +230,14 @@ private:
 	/** Таймер для дебаунса (на случай частых обновлений) */
 	FTimerHandle DebounceTimerHandle;
 
+	FTimerHandle TimerHandle;
+
 private:
 
 	int32 LastPlayersInfoVersion = -1;
+	float GameTargetTime = -1;
+	float CurrentGameTime = -1;
+
+	UFUNCTION()
+	void TimeToTick();
 };

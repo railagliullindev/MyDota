@@ -2,8 +2,10 @@
 
 #include "Widgets/InGame/TeamWidget.h"
 
+#include "Components/TextBlock.h"
 #include "Controllers/MD_PlayerController.h"
 #include "DataAssets/HeroInfo/MDHeroInfoDataAsset.h"
+#include "FuncLibraries/MD_UIHelper.h"
 #include "GameFrameworks/MD_PlayerState.h"
 #include "Subsystems/MD_DataSubsystem.h"
 #include "Widgets/InGame/HeroSlotWidget.h"
@@ -42,12 +44,14 @@ void UTeamWidget::NativeConstruct()
 			UE_LOG(LogTemp, Error, TEXT("MyTeamWidget: Slot %d is null! Check BindWidget in BP"), i);
 		}
 	}
+	checkf(TimeText, TEXT("Forget create TimeText on BP UTeamWidget"));
 
 	InitializeTeamWidget();
 }
 
 void UTeamWidget::NativeDestruct()
 {
+
 	// Отписываемся от всех делегатов GameState
 	if (CachedGameState)
 	{
@@ -61,6 +65,11 @@ void UTeamWidget::NativeDestruct()
 	if (DebounceTimerHandle.IsValid())
 	{
 		GetWorld()->GetTimerManager().ClearTimer(DebounceTimerHandle);
+	}
+
+	if (TimerHandle.IsValid())
+	{
+		GetWorld()->GetTimerManager().ClearTimer(TimerHandle);
 	}
 
 	Super::NativeDestruct();
@@ -116,6 +125,11 @@ void UTeamWidget::InitializeTeamWidget()
 		PlayerIdToSlotMap.Add(DirePlayers[i].PlayerId, SlotIndex);
 		UE_LOG(LogTemp, Log, TEXT("INIT: Mapped Dire Player %d -> Slot %d"), DirePlayers[i].PlayerId, SlotIndex);
 	}
+
+	OnGameTimeChanged();
+	CachedGameState->OnGameTimeChanged.AddDynamic(this, &UTeamWidget::OnGameTimeChanged);
+
+	GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &UTeamWidget::TimeToTick, 1.f, true);
 
 	RefreshAllSlots();
 	bIsInitialized = true;
@@ -537,6 +551,12 @@ void UTeamWidget::HandlePlayerHeroSelected(int32 PlayerId, int32 HeroId, EMDTeam
 	}
 }
 
+void UTeamWidget::OnGameTimeChanged()
+{
+	CurrentGameTime = CachedGameState->GetServerWorldTimeSeconds();
+	GameTargetTime = CachedGameState->StageEndTime;
+}
+
 void UTeamWidget::OnRep_PlayersInfo()
 {
 	// Этот метод будет вызываться, когда обновляется PlayersInfo в GameState
@@ -552,4 +572,14 @@ void UTeamWidget::OnLocalPlayerTeamChanged(EMDTeam NewTeam)
 
 	// Оповещаем подписчиков
 	// OnLocalPlayerTeamAssigned.Broadcast(NewTeam, IsTeamFull(NewTeam));
+}
+
+void UTeamWidget::TimeToTick()
+{
+	CurrentGameTime += 1;
+	// Локальный расчет: (Время конца) - (Текущее синхронизированное время)
+	const float TimeLeft = GameTargetTime - CurrentGameTime;
+	const float Time = FMath::Max(0, TimeLeft);
+
+	TimeText->SetText(FText::FromString(UMD_UIHelper::FormatTime(Time)));
 }
