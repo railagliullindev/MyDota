@@ -385,5 +385,5 @@ void AMD_CharacterBase::OnRep_PlayerState()
 void AMD_CharacterBase::OnRep_Owner()
 {
 	Super::OnRep_Owner();
-	InitAbilitySystem();
+	// InitAbilitySystem();
 }

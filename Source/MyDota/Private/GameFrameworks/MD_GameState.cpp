@@ -75,15 +75,12 @@ EMDTeam AMD_GameState::GetSmallestTeam() const
 
 void AMD_GameState::UpdatePlayerTeam(APlayerState* PlayerState, const EMDTeam NewTeam)
 {
-	FString NetPrefix = GetWorld()->GetNetMode() == NM_Client ? FString::Printf(TEXT("Client %d"), UE::GetPlayInEditorID()) : TEXT("Server");
-
 	// Создаем новую запись
 	FPlayerTeamInfo NewInfo;
 	NewInfo.PlayerId = PlayerState->GetPlayerId();
 	NewInfo.SetTeam(NewTeam);
-	NewInfo.PlayerName = PlayerState->GetPlayerName();
-
-	UE_LOG(LogTemp, Warning, TEXT("@@@ [ %s ] Set PI. PlayerID - %d, Team - %d"), *NetPrefix, NewInfo.PlayerId, NewInfo.GetTeam());
+	NewInfo.Slot = GetPlayersCountInTeam(NewTeam);
+	NewInfo.PlayerName = FString::FormatAsNumber(PlayerState->GetPlayerId()); //->GetPlayerName();
 
 	PlayersInfo.Add(NewInfo);
 }

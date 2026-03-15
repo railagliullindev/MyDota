@@ -38,8 +38,6 @@ public:
 	void ProcessHeroSelection(const APlayerController* PC, const int32 RequestedHeroId);
 	FVector GetBaseLocation(EMDTeam Team) const;
 
-	void InitializePlayerData(const APlayerController* NewPC) const;
-
 protected:
 
 	virtual void BeginPlay() override;
@@ -53,6 +51,7 @@ protected:
 	void InProgress();
 	void PostGame();
 
+	void InitializePlayerData(const APlayerController* NewPC) const;
 	void SpawnCameraForPlayer(APlayerController* NewPlayer);
 
 	UPROPERTY(EditDefaultsOnly, Category = "Classes")

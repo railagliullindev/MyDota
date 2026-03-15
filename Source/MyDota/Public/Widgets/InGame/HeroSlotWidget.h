@@ -7,6 +7,7 @@
 #include "Blueprint/UserWidget.h"
 #include "HeroSlotWidget.generated.h"
 
+class UTextBlock;
 struct FPlayerTeamInfo;
 /**
  * Виджет для одного слота героя в интерфейсе
@@ -45,6 +46,9 @@ public:
 	}
 
 protected:
+
+	UPROPERTY(meta = (BindWidget))
+	UTextBlock* PlayerName;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Hero Slot")
 	FPlayerTeamInfo CurrentPlayerInfo;

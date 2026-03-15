@@ -10,33 +10,32 @@ void UTimerWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	CachedGameState = GetWorld()->GetGameState<AMD_GameState>();
+	CachedGS = GetWorld()->GetGameState<AMD_GameState>();
 
-	if (!CachedGameState)
+	if (!CachedGS)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("UTimerWidget Cant find GS"));
 		return;
 	}
 	OnGameTimeChanged();
-	CachedGameState->OnGameTimeChanged.AddDynamic(this, &UTimerWidget::OnGameTimeChanged);
+	CachedGS->OnGameTimeChanged.AddDynamic(this, &UTimerWidget::OnGameTimeChanged);
 
 	GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &UTimerWidget::TimeTick, 1.f, true, 0.f);
 }
 
 void UTimerWidget::OnGameTimeChanged()
 {
-	CurrentGameTime = CachedGameState->GetServerWorldTimeSeconds();
-	GameTargetTime = CachedGameState->MatchStartTime;
+	CurrentGameTime = CachedGS->GetServerWorldTimeSeconds();
+	GameTargetTime = CachedGS->MatchStartTime;
 	UE_LOG(LogTemp, Warning, TEXT("UTimerWidget::OnGameTimeChanged() %f "), GameTargetTime);
 }
 
 void UTimerWidget::TimeTick()
 {
 	CurrentGameTime += 1;
-
 	const float TotalSeconds = CurrentGameTime - GameTargetTime;
-	const bool bIsPreGame = TotalSeconds < 0;
 
+	const bool bIsPreGame = TotalSeconds < 0;
 	if (bIsPreGame)
 	{
 		// Для форматирования берем абсолютное значение

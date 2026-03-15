@@ -104,10 +104,11 @@ void UTeamWidget::InitializeTeamWidget()
 	CachedGameState->OnPlayerLeftTeam.AddDynamic(this, &UTeamWidget::HandlePlayerLeftTeam);
 
 	// Проверяем, что PlayersInfo пришел
-	UE_LOG(LogTemp, Warning, TEXT("Delayed init - PlayersInfo count: %d"), CachedGameState->PlayersInfo.Num());
-
-	// Заполняем карту
-	PlayerIdToSlotMap.Empty();
+	UE_LOG(LogTemp, Warning, TEXT("### Delayed init - PlayersInfo count: %d"), CachedGameState->PlayersInfo.Num());
+	for (auto Element : CachedGameState->PlayersInfo)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("### Player - %d, Team - %hhd"), Element.PlayerId, Element.GetTeam());
+	}
 
 	// Radiant
 	TArray<FPlayerTeamInfo> RadiantPlayers = CachedGameState->GetPlayersInTeam(EMDTeam::Radiant);

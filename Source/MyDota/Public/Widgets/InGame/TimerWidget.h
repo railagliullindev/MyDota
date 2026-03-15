@@ -37,5 +37,5 @@ private:
 	virtual void TimeTick();
 
 	UPROPERTY()
-	AMD_GameState* CachedGameState;
+	AMD_GameState* CachedGS;
 };

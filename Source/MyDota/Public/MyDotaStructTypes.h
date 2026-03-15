@@ -102,13 +102,16 @@ struct FPlayerTeamInfo
 	FString PlayerName;
 
 	UPROPERTY(BlueprintReadOnly)
+	int32 Slot = -1;
+
+	UPROPERTY(BlueprintReadOnly)
 	TEnumAsByte<EChangeType> ChangeType = EChangeType::None;
 
 public:
 
 	EMDTeam GetTeam() const
 	{
-		return static_cast<EMDTeam>(PlayerId);
+		return static_cast<EMDTeam>(Team);
 	}
 
 	void SetTeam(EMDTeam NewTeam)
