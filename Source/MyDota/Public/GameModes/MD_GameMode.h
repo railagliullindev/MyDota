@@ -87,9 +87,9 @@ private:
 
 	void MoveToNextStage();
 
-	const float WaitingForPlayersTime = 3.0f;
 	const float WaitingForPlayersTime = 5.0f;
 	const float DraftTime = 60.0f;
+	const float PrepareForBattleTime = 1.f;
 	const float PreGameTime = 30.0f;
 	const float PostGameTime = 15.0f;
 
