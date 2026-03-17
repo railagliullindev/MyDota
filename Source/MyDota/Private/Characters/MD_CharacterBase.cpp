@@ -278,7 +278,7 @@ void AMD_CharacterBase::SetPlayerState(AMD_PlayerState* InPs)
 		if (AFogOfWarManager* FogManager = AFogOfWarManager::Get(this, static_cast<uint8>(GetTeam())))
 		{
 			// Регистрируем юнит как источник обзора
-			FogManager->RegisterSource(this, 1200.0f);
+			FogManager->RegisterSource(this, 500.0f);
 			UE_LOG(LogTemp, Warning, TEXT("Server: Registered %s as Vision Source"), *GetName());
 		}
 		else

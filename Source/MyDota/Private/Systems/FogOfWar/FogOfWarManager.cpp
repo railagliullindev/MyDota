@@ -15,7 +15,8 @@ AFogOfWarManager::AFogOfWarManager()
 	NetPriority = 3.0f;
 
 	PrimaryActorTick.bCanEverTick = true;
-	PrimaryActorTick.bStartWithTickEnabled = true;
+	PrimaryActorTick.bStartWithTickEnabled = false;
+	PrimaryActorTick.TickInterval = 0.0167f;
 }
 
 AFogOfWarManager* AFogOfWarManager::Get(const UObject* WorldContextObject, const uint8 TeamID)
@@ -68,8 +69,18 @@ void AFogOfWarManager::OnRep_CompressedFog()
 
 		// Для плавности можно делать Lerp между старым цветом и новым,
 		// но для начала просто записываем:
-		PixelBuffer[i] = TargetColor;
+
+		// PixelBuffer[i] = TargetColor;
 		TargetFogGoal[i] = bIsVisible ? TARGET_VISIBLE : TARGET_FOG;
+
+		/*if (bIsVisible)
+		{
+
+			const float Extend = (GridCellSize - 5.f) / 2;
+			const float Time = 0.2f;
+			FVector Center = GridToWorld(i) + FVector(0, 0, TerrainHeightLevel * TerrainHeights[i] + 100.f);
+			DrawDebugBox(GetWorld(), Center, FVector(Extend, Extend, 10.f), FColor::White, false, Time);
+		}*/
 	}
 
 	UpdateTexture();
@@ -92,6 +103,8 @@ void AFogOfWarManager::TraceLine(const FIntPoint& Start, const FIntPoint& End, i
 	int32 n = 1 + (dx / 2) + (dy / 2);
 	const int32 MaxRangeSq = MaxRange * MaxRange;
 
+	// DrawDebugDirectionalArrow(GetWorld(), GridToWorld(Start) + FVector(0, 0, 120), GridToWorld(End) + FVector(0, 0, 120), 5.f, FColor::Red, false, 5.f);
+
 	for (; n > 0; --n)
 	{
 		// 2. Проверка границ сетки (защита от краша)
@@ -103,7 +116,38 @@ void AFogOfWarManager::TraceLine(const FIntPoint& Start, const FIntPoint& End, i
 		int32 CurDistSq = (x - Start.X) * (x - Start.X) + (y - Start.Y) * (y - Start.Y);
 		if (CurDistSq > MaxRangeSq) break;
 
-		// DrawDebugPoint(GetWorld(), GridToWorld(Index) + FVector(0, 0, 5), 5.f, FColor::White, false, 2.f);
+		// DEBUG
+		/*int32 ProblemIndex = -1;
+		const float Extend = (GridCellSize - 5.f) / 2;
+		const float DrawTime = 2.f;
+		FVector Center = GridToWorld(Index) + FVector(0, 0, 5.f);
+
+		if (StaticObstacles[Index])
+		{
+			ProblemIndex = 1;
+			Center -= FVector(0, 0, (TerrainHeights[Index] * TerrainHeightLevel) / 2);
+		}
+		else if (TerrainHeights[Index] > ViewerHeight)
+		{
+			ProblemIndex = 2;
+			// Center -= FVector(0, 0, TerrainHeights[Index] * TerrainHeightLevel);
+		}
+
+		if (ProblemIndex == -1)
+		{
+			DrawDebugBox(GetWorld(), Center, FVector(Extend, Extend, 10.f), FColor::White, false, DrawTime);
+		}
+		else
+		{
+			if (ProblemIndex == 1)
+			{
+				DrawDebugBox(GetWorld(), Center, FVector(Extend, Extend, 10.f), FColor::Red, false, DrawTime);
+			}
+			else if (ProblemIndex == 2)
+			{
+				DrawDebugBox(GetWorld(), Center, FVector(Extend, Extend, 10.f), FColor::Yellow, false, DrawTime);
+			}
+		}*/
 
 		// 4. Логика препятствий (Деревья / Стены)
 		if (StaticObstacles[Index])
@@ -116,8 +160,6 @@ void AFogOfWarManager::TraceLine(const FIntPoint& Start, const FIntPoint& End, i
 		// 5. Логика High Ground
 		if (TerrainHeights[Index] > ViewerHeight)
 		{
-			// DrawDebugPoint(GetWorld(), GridToWorld(Index) + FVector(0, 0, 10), 15.f, FColor::Yellow, false, 2.f);
-
 			// В Dota мы не видим что за High Ground
 			break;
 		}
@@ -167,19 +209,20 @@ void AFogOfWarManager::ShowBakeLevel(const float Time)
 		for (int32 x = 0; x < MapSize.X; x++)
 		{
 			const int32 Index = x + y * MapSize.X;
-			const FVector Center = GridToWorld(Index);
-			const int32 ColorIndex = TerrainHeights[Index];
+			FVector Center = GridToWorld(Index);
+			const int32 TerrainLevel = TerrainHeights[Index];
 			const bool bHasObstacle = StaticObstacles[Index];
-
-			const FColor Color = LevelColors.IsValidIndex(ColorIndex) ? LevelColors[ColorIndex] : LevelColors.Last();
+			const FColor Color = LevelColors.IsValidIndex(TerrainLevel) ? LevelColors[TerrainLevel] : LevelColors.Last();
+			const float Extend = (GridCellSize - 5.f) / 2;
 
 			if (bHasObstacle)
 			{
-				DrawDebugBox(GetWorld(), Center - FVector(0, 0, TerrainHeightLevel / 2), FVector(GridCellSize / 2, GridCellSize / 2, TerrainHeightLevel), FColor::Black, false, Time, 0, 2);
+				Center -= TerrainLevel * FVector(0, 0, TerrainHeightLevel);
+				DrawDebugBox(GetWorld(), Center, FVector(Extend, Extend, TerrainHeightLevel * TerrainLevel + 10.f), LevelColors.Last(), false, Time, 0, 2);
 			}
 			else
 			{
-				DrawDebugBox(GetWorld(), Center, FVector(GridCellSize / 2, GridCellSize / 2, 10.f), Color, false, Time);
+				DrawDebugBox(GetWorld(), Center, FVector(Extend, Extend, 10.f), Color, false, Time);
 			}
 		}
 	}
@@ -301,7 +344,6 @@ FIntPoint AFogOfWarManager::WorldToGrid(const FVector& Location) const
 
 FVector AFogOfWarManager::GridToWorld(const int32 Index) const
 {
-	if (!RawVisibilityData.IsValidIndex(Index)) return FVector::ZeroVector;
 
 	// 1. Из индекса в координаты сетки
 	const int32 GridX = Index % MapSize.X;
@@ -340,6 +382,7 @@ bool AFogOfWarManager::IsCellVisibleOnClient(const FIntPoint& GridPos) const
 	const int32 Index = GridPos.X + GridPos.Y * MapSize.X;
 	if (TargetFogGoal.IsValidIndex(Index))
 	{
+		// TODO: Перевести на TArray<bool>
 		return FMath::IsNearlyEqual(TargetFogGoal[Index], TARGET_VISIBLE, INTERPOLATION_TOLERANCE);
 	}
 	return false;
@@ -470,6 +513,14 @@ void AFogOfWarManager::UpdateLineOfSightCached(FVisionSource& Source)
 			TraceLine(Center, FIntPoint(Center.X + RangeCells, y), RangeCells, Source.LastViewerHeight, Source.VisibleIndices);
 		}
 		Source.bIsDirty = false;
+
+		/*const float Extend = (GridCellSize - 5.f) / 2;
+		const float DrawTime = 0.5f;
+		for (const auto Index : Source.VisibleIndices)
+		{
+			FVector LocCenter = GridToWorld(Index) + FVector(0, 0, 10);
+			DrawDebugBox(GetWorld(), LocCenter, FVector(Extend, Extend, 10.f), FColor::White, false, DrawTime);
+		}*/
 	}
 	// Применяем кеш (даже если он не dirty, мы должны пометить ячейки как видимые в этом кадре)
 	for (const auto Index : Source.VisibleIndices)
@@ -528,39 +579,41 @@ void AFogOfWarManager::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 
 void AFogOfWarManager::Tick(float DeltaSeconds)
 {
-	if (!HasAuthority())
+	bool bChanged = false;
+
+	for (int32 i = 0; i < CurrentInterpolatedFog.Num(); ++i)
 	{
-		bool bChanged = false;
 
-		for (int32 i = 0; i < CurrentInterpolatedFog.Num(); ++i)
+		const float Current = CurrentInterpolatedFog[i];
+		const float Target = TargetFogGoal[i];
+
+		if (!FMath::IsNearlyEqual(Current, Target, INTERPOLATION_TOLERANCE))
 		{
-			const float Current = CurrentInterpolatedFog[i];
-			const float Target = TargetFogGoal[i];
+			// FInterpTo делает движение плавным (зависит от FogFadeSpeed)
+			CurrentInterpolatedFog[i] = FMath::FInterpTo(Current, Target, DeltaSeconds, FogFadeSpeed);
 
-			if (!FMath::IsNearlyEqual(Current, Target, INTERPOLATION_TOLERANCE))
-			{
-				// FInterpTo делает движение плавным (зависит от FogFadeSpeed)
-				CurrentInterpolatedFog[i] = FMath::FInterpTo(Current, Target, DeltaSeconds, FogFadeSpeed);
-				bChanged = true;
-			}
+			// Записываем в PixelBuffer
+			const uint8 Brightness = FMath::RoundToInt(CurrentInterpolatedFog[i] * VISIBILITY_VISIBLE);
+			PixelBuffer[i].R = Brightness;
+			bChanged = true;
 		}
+	}
 
-		// Если хоть один пиксель изменился — пушим в текстуру
-		if (bChanged)
-		{
-			UpdateTexture();
-		}
+	// Если хоть один пиксель изменился — пушим в текстуру
+	if (bChanged)
+	{
+		UpdateTexture();
+	}
 
-		// Проверка всех AllUnits
-		if (AMD_GameState* GS = GetWorld()->GetGameState<AMD_GameState>())
+	// Проверка всех AllUnits
+	if (AMD_GameState* GS = GetWorld()->GetGameState<AMD_GameState>())
+	{
+		const TArray<AActor*>& Units = GS->GetUnitsInTeam(GetCachedEnemyTeam());
+		for (const auto Unit : Units)
 		{
-			const TArray<AActor*>& Units = GS->GetUnitsInTeam(GetCachedEnemyTeam());
-			for (const auto Unit : Units)
+			if (Unit)
 			{
-				if (Unit)
-				{
-					UpdateUnitVisibilityState(Unit);
-				}
+				UpdateUnitVisibilityState(Unit);
 			}
 		}
 	}
@@ -616,6 +669,8 @@ void AFogOfWarManager::InitFogManager()
 
 		// Здесь же вызываем создание текстуры
 		InitTexture();
+
+		SetActorTickEnabled(true);
 	}
 
 	UE_LOG(LogFogOfWar, Log, TEXT("FogManager [%s]: Initialization Complete."), *RoleString);
@@ -624,6 +679,7 @@ void AFogOfWarManager::InitFogManager()
 
 void AFogOfWarManager::InitTexture()
 {
+
 	FogTexture = UTexture2D::CreateTransient(MapSize.X, MapSize.Y, PF_B8G8R8A8);
 	FogTexture->CompressionSettings = TC_VectorDisplacementmap; // Отключаем компрессию
 	FogTexture->SRGB = false;
@@ -632,7 +688,15 @@ void AFogOfWarManager::InitTexture()
 
 	PixelBuffer.SetNumUninitialized(MapSize.X * MapSize.Y);
 
+	// Дефолт
+	for (auto& Color : PixelBuffer)
+	{
+		Color = FColor::Black;
+	}
+
 	TextureRegion = MakeUnique<FUpdateTextureRegion2D>(0, 0, 0, 0, MapSize.X, MapSize.Y);
+
+	UpdateTexture();
 
 	if (PostProcessMaterial)
 	{
