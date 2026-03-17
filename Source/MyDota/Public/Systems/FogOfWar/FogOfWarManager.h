@@ -129,7 +129,7 @@ protected:
 	float GridCellSize = 100.f;
 
 	/** Размер карты в ячейках */
-	UPROPERTY(EditDefaultsOnly, Category = "Fog Settings", meta = (CLampMin = "50"))
+	UPROPERTY(EditDefaultsOnly, Category = "Fog Settings", meta = (CLampMin = "10"))
 	FIntPoint MapSize = FIntPoint(256, 256);
 
 	/* ============================================================================
@@ -251,9 +251,6 @@ private:
 	/** Кэш вражеской каманды, для работы с GS (клиент) */
 	EMDTeam EnemyTeamCached = EMDTeam::None;
 
-	/* ============================================================================
-	 *  Приватные методы
-	 * ============================================================================ */
 private:
 
 	// --- Инициализация ---------------------------------------------------------
@@ -329,4 +326,12 @@ public:
 
 	UFUNCTION()
 	static EMDTeam GetEnemyTeam(EMDTeam InTeam);
+
+	/* ============================================================================
+	 *  Для тестирования
+	 * ============================================================================ */
+protected:
+
+	UFUNCTION(BlueprintCallable, Category = "Debug", meta = (DevelopmentOnly))
+	void ShowBakeLevel(const float Time);
 };

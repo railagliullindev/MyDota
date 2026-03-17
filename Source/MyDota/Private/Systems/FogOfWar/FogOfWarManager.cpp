@@ -103,6 +103,8 @@ void AFogOfWarManager::TraceLine(const FIntPoint& Start, const FIntPoint& End, i
 		int32 CurDistSq = (x - Start.X) * (x - Start.X) + (y - Start.Y) * (y - Start.Y);
 		if (CurDistSq > MaxRangeSq) break;
 
+		// DrawDebugPoint(GetWorld(), GridToWorld(Index) + FVector(0, 0, 5), 5.f, FColor::White, false, 2.f);
+
 		// 4. Логика препятствий (Деревья / Стены)
 		if (StaticObstacles[Index])
 		{
@@ -114,8 +116,9 @@ void AFogOfWarManager::TraceLine(const FIntPoint& Start, const FIntPoint& End, i
 		// 5. Логика High Ground
 		if (TerrainHeights[Index] > ViewerHeight)
 		{
-			// Видим только склон (границу возвышенности), но не саму гору
-			OutIndices.AddUnique(Index);
+			// DrawDebugPoint(GetWorld(), GridToWorld(Index) + FVector(0, 0, 10), 15.f, FColor::Yellow, false, 2.f);
+
+			// В Dota мы не видим что за High Ground
 			break;
 		}
 
@@ -147,6 +150,42 @@ void AFogOfWarManager::UpdateTexture()
 	FogTexture->UpdateTextureRegions(0, 1, RegionData, MapSize.X * BYTES_PER_PIXEL, BYTES_PER_PIXEL, (uint8*)DataPtr);
 }
 
+void AFogOfWarManager::ShowBakeLevel(const float Time)
+{
+#if WITH_EDITOR
+	BakeLevelData();
+
+	TArray<FColor> LevelColors;
+	LevelColors.Add(FColor::Green);
+	LevelColors.Add(FColor::Blue);
+	LevelColors.Add(FColor::Cyan);
+	LevelColors.Add(FColor::Yellow);
+	LevelColors.Add(FColor::Black);
+
+	for (int32 y = 0; y < MapSize.Y; y++)
+	{
+		for (int32 x = 0; x < MapSize.X; x++)
+		{
+			const int32 Index = x + y * MapSize.X;
+			const FVector Center = GridToWorld(Index);
+			const int32 ColorIndex = TerrainHeights[Index];
+			const bool bHasObstacle = StaticObstacles[Index];
+
+			const FColor Color = LevelColors.IsValidIndex(ColorIndex) ? LevelColors[ColorIndex] : LevelColors.Last();
+
+			if (bHasObstacle)
+			{
+				DrawDebugBox(GetWorld(), Center - FVector(0, 0, TerrainHeightLevel / 2), FVector(GridCellSize / 2, GridCellSize / 2, TerrainHeightLevel), FColor::Black, false, Time, 0, 2);
+			}
+			else
+			{
+				DrawDebugBox(GetWorld(), Center, FVector(GridCellSize / 2, GridCellSize / 2, 10.f), Color, false, Time);
+			}
+		}
+	}
+#endif
+}
+
 void AFogOfWarManager::BakeLevelData()
 {
 	const int32 TotalCells = MapSize.X * MapSize.Y;
@@ -174,11 +213,12 @@ void AFogOfWarManager::BakeLevelData()
 			const int32 Index = x + y * MapSize.X;
 
 			// Переводим координаты сетки в мировые координаты
-			FVector CellWorldPos = GridToWorld(FIntPoint(x, y));
+			FVector CellWorldPos = GridToWorld(FIntPoint(x, y));			  // GridToWorld(FIntPoint(x, y)) + FVector(GridCellSize / 2, GridCellSize / 2, 0);
 			FVector RayStart = CellWorldPos + FVector(0, 0, BAKE_RAY_HEIGHT); // С неба
 			FVector RayEnd = CellWorldPos - FVector(0, 0, BAKE_RAY_HEIGHT);	  // В пол
 
 			FHitResult Hit;
+
 			// Трейсим, чтобы найти землю (Landscape) и объекты (Trees/Walls)
 			if (GetWorld()->LineTraceSingleByChannel(Hit, RayStart, RayEnd, ECC_WorldStatic, QueryParams))
 			{
@@ -272,17 +312,16 @@ FVector AFogOfWarManager::GridToWorld(const int32 Index) const
 	const float WorldY = (GridY - (MapSize.Y / 2.0f)) * GridCellSize;
 
 	// 3. Учитываем позицию самого менеджера в мире
-	const FVector ManagerLoc = GetActorLocation();
+	// const FVector ManagerLoc = GetActorLocation();
 
 	// Z берем либо из запеченных высот, либо из позиции менеджера
-	float WorldZ = ManagerLoc.Z;
+	float WorldZ = 0;
 	if (TerrainHeights.IsValidIndex(Index))
 	{
-		// Помнишь, мы делили на 128 при запекании? Теперь умножаем обратно.
 		WorldZ = TerrainHeights[Index] * TerrainHeightLevel;
 	}
 
-	return FVector(WorldX + ManagerLoc.X, WorldY + ManagerLoc.Y, WorldZ);
+	return FVector(WorldX + GridCellSize / 2, WorldY + GridCellSize / 2, WorldZ); // FVector(WorldX + ManagerLoc.X, WorldY + ManagerLoc.Y, WorldZ);
 }
 
 bool AFogOfWarManager::IsCellVisible(const FIntPoint& GridPos) const
@@ -322,7 +361,7 @@ FVector AFogOfWarManager::GridToWorld(const FIntPoint& GridCoords) const
 	WorldPos.X = (GridCoords.X - MapSize.X / 2.0f) * GridCellSize;
 	WorldPos.Y = (GridCoords.Y - MapSize.Y / 2.0f) * GridCellSize;
 	WorldPos.Z = 0; // Z определится трейсом
-	return WorldPos + GetActorLocation();
+	return WorldPos + GetActorLocation() + FVector(GridCellSize / 2, GridCellSize / 2, 0);
 }
 
 bool AFogOfWarManager::IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const
