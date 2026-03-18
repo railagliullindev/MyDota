@@ -24,15 +24,12 @@ AFogOfWarManager* AFogOfWarManager::Get(const UObject* WorldContextObject, const
 	const UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
 	if (!World) return nullptr;
 
-	// UE_LOG(LogFogOfWar, Warning, TEXT("AFogOfWarManager::Get try find team id %hhu"), TeamID);
 	for (TActorIterator<AFogOfWarManager> It(World); It; ++It)
 	{
-		// UE_LOG(LogFogOfWar, Warning, TEXT("AFogOfWarManager::Get It %hhu"), It->AssignedTeamID);
 		//   На сервере ищем менеджер конкретной команды
 		//   На клиенте AssignedTeamID совпадет только у "своего" менеджера (благодаря IsNetRelevantFor)
-		if ((uint8)It->AssignedTeamID == TeamID || TeamID == -1)
+		if (static_cast<uint8>(It->AssignedTeamID) == TeamID || TeamID == -1)
 		{
-			// UE_LOG(LogFogOfWar, Warning, TEXT("AFogOfWarManager::Get Find"));
 			return *It;
 		}
 	}
@@ -55,29 +52,21 @@ void AFogOfWarManager::OnRep_CompressedFog()
 {
 	if (!bInitialized) return;
 
-	// Для проверки: работает ли связка AFogOfWarManager -> Шейдер
-	// for(auto& Color : PixelBuffer) Color = FColor::Red;
-
 	for (int32 i = 0; i < PixelBuffer.Num(); ++i)
 	{
 		const int32 WordIndex = i / BITS_PER_WORD;
 		const int32 BitIndex = i % BIT_INDEX_MASK;
 		const bool bIsVisible = (CompressedFogData[WordIndex] >> BitIndex) & 1;
 
-		// Текущее состояние в буфере
-		const FColor TargetColor = bIsVisible ? FColor::White : FColor(COLOR_FOG, COLOR_FOG, COLOR_FOG, COLOR_ALPHA_OPAQUE);
-
-		// Для плавности можно делать Lerp между старым цветом и новым,
-		// но для начала просто записываем:
-
-		// PixelBuffer[i] = TargetColor;
+		// Записываем через TargetFogGoal, для добавления плавности
+		// а не напрямую в BufferPixel
 		TargetFogGoal[i] = bIsVisible ? TARGET_VISIBLE : TARGET_FOG;
 
+		// Debug
 		/*if (bIsVisible)
 		{
-
 			const float Extend = (GridCellSize - 5.f) / 2;
-			const float Time = 0.2f;
+			const float Time = 0.1f;
 			FVector Center = GridToWorld(i) + FVector(0, 0, TerrainHeightLevel * TerrainHeights[i] + 100.f);
 			DrawDebugBox(GetWorld(), Center, FVector(Extend, Extend, 10.f), FColor::White, false, Time);
 		}*/
@@ -103,8 +92,6 @@ void AFogOfWarManager::TraceLine(const FIntPoint& Start, const FIntPoint& End, i
 	int32 n = 1 + (dx / 2) + (dy / 2);
 	const int32 MaxRangeSq = MaxRange * MaxRange;
 
-	// DrawDebugDirectionalArrow(GetWorld(), GridToWorld(Start) + FVector(0, 0, 120), GridToWorld(End) + FVector(0, 0, 120), 5.f, FColor::Red, false, 5.f);
-
 	for (; n > 0; --n)
 	{
 		// 2. Проверка границ сетки (защита от краша)
@@ -116,43 +103,10 @@ void AFogOfWarManager::TraceLine(const FIntPoint& Start, const FIntPoint& End, i
 		int32 CurDistSq = (x - Start.X) * (x - Start.X) + (y - Start.Y) * (y - Start.Y);
 		if (CurDistSq > MaxRangeSq) break;
 
-		// DEBUG
-		/*int32 ProblemIndex = -1;
-		const float Extend = (GridCellSize - 5.f) / 2;
-		const float DrawTime = 2.f;
-		FVector Center = GridToWorld(Index) + FVector(0, 0, 5.f);
-
-		if (StaticObstacles[Index])
-		{
-			ProblemIndex = 1;
-			Center -= FVector(0, 0, (TerrainHeights[Index] * TerrainHeightLevel) / 2);
-		}
-		else if (TerrainHeights[Index] > ViewerHeight)
-		{
-			ProblemIndex = 2;
-			// Center -= FVector(0, 0, TerrainHeights[Index] * TerrainHeightLevel);
-		}
-
-		if (ProblemIndex == -1)
-		{
-			DrawDebugBox(GetWorld(), Center, FVector(Extend, Extend, 10.f), FColor::White, false, DrawTime);
-		}
-		else
-		{
-			if (ProblemIndex == 1)
-			{
-				DrawDebugBox(GetWorld(), Center, FVector(Extend, Extend, 10.f), FColor::Red, false, DrawTime);
-			}
-			else if (ProblemIndex == 2)
-			{
-				DrawDebugBox(GetWorld(), Center, FVector(Extend, Extend, 10.f), FColor::Yellow, false, DrawTime);
-			}
-		}*/
-
 		// 4. Логика препятствий (Деревья / Стены)
 		if (StaticObstacles[Index])
 		{
-			// В Dota мы видим само дерево, но не то, что ЗА ним
+			// В Dota мы видим само дерево, но не то, что за ним
 			OutIndices.AddUnique(Index);
 			break;
 		}
@@ -160,7 +114,7 @@ void AFogOfWarManager::TraceLine(const FIntPoint& Start, const FIntPoint& End, i
 		// 5. Логика High Ground
 		if (TerrainHeights[Index] > ViewerHeight)
 		{
-			// В Dota мы не видим что за High Ground
+			// В Dota мы не видим ни возвышенность, ни что за ним
 			break;
 		}
 
@@ -189,7 +143,7 @@ void AFogOfWarManager::UpdateTexture()
 	const auto RegionData = TextureRegion.Get();
 	const auto DataPtr = PixelBuffer.GetData();
 
-	FogTexture->UpdateTextureRegions(0, 1, RegionData, MapSize.X * BYTES_PER_PIXEL, BYTES_PER_PIXEL, (uint8*)DataPtr);
+	FogTexture->UpdateTextureRegions(0, 1, RegionData, MapSize.X * BYTES_PER_PIXEL, BYTES_PER_PIXEL, reinterpret_cast<uint8*>(DataPtr));
 }
 
 void AFogOfWarManager::ShowBakeLevel(const float Time)
@@ -256,7 +210,7 @@ void AFogOfWarManager::BakeLevelData()
 			const int32 Index = x + y * MapSize.X;
 
 			// Переводим координаты сетки в мировые координаты
-			FVector CellWorldPos = GridToWorld(FIntPoint(x, y));			  // GridToWorld(FIntPoint(x, y)) + FVector(GridCellSize / 2, GridCellSize / 2, 0);
+			FVector CellWorldPos = GridToWorld(FIntPoint(x, y));
 			FVector RayStart = CellWorldPos + FVector(0, 0, BAKE_RAY_HEIGHT); // С неба
 			FVector RayEnd = CellWorldPos - FVector(0, 0, BAKE_RAY_HEIGHT);	  // В пол
 
@@ -266,11 +220,10 @@ void AFogOfWarManager::BakeLevelData()
 			if (GetWorld()->LineTraceSingleByChannel(Hit, RayStart, RayEnd, ECC_WorldStatic, QueryParams))
 			{
 				// 1. Записываем высоту (делим на шаг высоты Dota, например, 128 юнитов)
-				// Это превратит 0, 128, 256 в уровни 0, 1, 2
+				// Это превратит 0, 128, 256... в уровни 0, 1, 2...
 				TerrainHeights[Index] = FMath::Clamp(FMath::FloorToInt(Hit.Location.Z / TerrainHeightLevel), 0, MAX_HEIGHT_LEVEL);
 
 				// 2. Проверяем, является ли объект препятствием
-				// Можно проверять по Tag или по Actor Class (например, деревья)
 				if (Hit.GetActor() && Hit.GetActor()->ActorHasTag(*StaticObstacleTag))
 				{
 					StaticObstacles[Index] = true;
@@ -344,26 +297,22 @@ FIntPoint AFogOfWarManager::WorldToGrid(const FVector& Location) const
 
 FVector AFogOfWarManager::GridToWorld(const int32 Index) const
 {
-
 	// 1. Из индекса в координаты сетки
 	const int32 GridX = Index % MapSize.X;
 	const int32 GridY = Index / MapSize.X;
 
-	// 2. Из сетки в мировые координаты (относительно центра менеджера)
+	// 2. Из сетки в мировые координаты
 	const float WorldX = (GridX - (MapSize.X / 2.0f)) * GridCellSize;
 	const float WorldY = (GridY - (MapSize.Y / 2.0f)) * GridCellSize;
 
-	// 3. Учитываем позицию самого менеджера в мире
-	// const FVector ManagerLoc = GetActorLocation();
-
-	// Z берем либо из запеченных высот, либо из позиции менеджера
+	// 3. Z берем либо из запеченных высот
 	float WorldZ = 0;
 	if (TerrainHeights.IsValidIndex(Index))
 	{
 		WorldZ = TerrainHeights[Index] * TerrainHeightLevel;
 	}
 
-	return FVector(WorldX + GridCellSize / 2, WorldY + GridCellSize / 2, WorldZ); // FVector(WorldX + ManagerLoc.X, WorldY + ManagerLoc.Y, WorldZ);
+	return FVector(WorldX + GridCellSize / 2, WorldY + GridCellSize / 2, WorldZ);
 }
 
 bool AFogOfWarManager::IsCellVisible(const FIntPoint& GridPos) const
@@ -371,7 +320,6 @@ bool AFogOfWarManager::IsCellVisible(const FIntPoint& GridPos) const
 	const int32 Index = GridPos.X + GridPos.Y * MapSize.X;
 	if (RawVisibilityData.IsValidIndex(Index))
 	{
-
 		return RawVisibilityData[Index] == VISIBILITY_VISIBLE;
 	}
 	return false;
@@ -382,7 +330,7 @@ bool AFogOfWarManager::IsCellVisibleOnClient(const FIntPoint& GridPos) const
 	const int32 Index = GridPos.X + GridPos.Y * MapSize.X;
 	if (TargetFogGoal.IsValidIndex(Index))
 	{
-		// TODO: Перевести на TArray<bool>
+		// TODO: Перевести на TArray<bool>?
 		return FMath::IsNearlyEqual(TargetFogGoal[Index], TARGET_VISIBLE, INTERPOLATION_TOLERANCE);
 	}
 	return false;
@@ -403,8 +351,15 @@ FVector AFogOfWarManager::GridToWorld(const FIntPoint& GridCoords) const
 	FVector WorldPos;
 	WorldPos.X = (GridCoords.X - MapSize.X / 2.0f) * GridCellSize;
 	WorldPos.Y = (GridCoords.Y - MapSize.Y / 2.0f) * GridCellSize;
-	WorldPos.Z = 0; // Z определится трейсом
-	return WorldPos + GetActorLocation() + FVector(GridCellSize / 2, GridCellSize / 2, 0);
+	WorldPos.Z = 0.0f;
+	const int32 Index = GridCoords.X + GridCoords.Y * MapSize.X;
+
+	if (TerrainHeights.IsValidIndex(Index))
+	{
+		WorldPos.Z = TerrainHeights[Index] * TerrainHeightLevel;
+	}
+
+	return WorldPos + FVector(GridCellSize / 2, GridCellSize / 2, WorldPos.Z);
 }
 
 bool AFogOfWarManager::IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const
@@ -432,7 +387,6 @@ void AFogOfWarManager::CalculateFogOfWar()
 	}
 
 	// 3. Обновление обзора от всех живых источников
-	// Допустим, у тебя есть список зарегистрированных юнитов
 	for (FVisionSource& Source : ActiveVisionSources)
 	{
 		if (IsValid(Source.SourceActor))
@@ -442,7 +396,6 @@ void AFogOfWarManager::CalculateFogOfWar()
 	}
 
 	// 4. Сжатие данных в биты для репликации
-	// Это автоматически вызовет OnRep_CompressedFog у клиентов
 	for (int32 i = 0; i < RawVisibilityData.Num(); ++i)
 	{
 		const int32 WordIndex = i / BITS_PER_WORD;
@@ -467,7 +420,7 @@ void AFogOfWarManager::CalculateFogOfWarCached()
 	bool bAnythingChanged = bForceUpdate;
 
 	// 2. Проверяем, кто из юнитов сдвинулся хотя бы на половину ячейки
-	const float Distance = GridCellSize * HALF_CELL_MOVEMENT_FACTOR; // MapSize.X * 0.5f;
+	const float Distance = GridCellSize * HALF_CELL_MOVEMENT_FACTOR;
 	for (FVisionSource& Source : ActiveVisionSources)
 	{
 		if (!IsValid(Source.SourceActor)) continue;
@@ -498,8 +451,8 @@ void AFogOfWarManager::UpdateLineOfSightCached(FVisionSource& Source)
 	if (Source.bIsDirty)
 	{
 		Source.VisibleIndices.Empty();
-		FIntPoint Center = WorldToGrid(Source.LastLocation);
-		int32 RangeCells = FMath::RoundToInt(Source.Radius / GridCellSize);
+		const FIntPoint Center = WorldToGrid(Source.LastLocation);
+		const int32 RangeCells = FMath::RoundToInt(Source.Radius / GridCellSize);
 
 		// Пускаем лучи Брезенхема по периметру
 		for (int32 x = Center.X - RangeCells; x <= Center.X + RangeCells; x++)
@@ -513,14 +466,6 @@ void AFogOfWarManager::UpdateLineOfSightCached(FVisionSource& Source)
 			TraceLine(Center, FIntPoint(Center.X + RangeCells, y), RangeCells, Source.LastViewerHeight, Source.VisibleIndices);
 		}
 		Source.bIsDirty = false;
-
-		/*const float Extend = (GridCellSize - 5.f) / 2;
-		const float DrawTime = 0.5f;
-		for (const auto Index : Source.VisibleIndices)
-		{
-			FVector LocCenter = GridToWorld(Index) + FVector(0, 0, 10);
-			DrawDebugBox(GetWorld(), LocCenter, FVector(Extend, Extend, 10.f), FColor::White, false, DrawTime);
-		}*/
 	}
 	// Применяем кеш (даже если он не dirty, мы должны пометить ячейки как видимые в этом кадре)
 	for (const auto Index : Source.VisibleIndices)
@@ -531,25 +476,23 @@ void AFogOfWarManager::UpdateLineOfSightCached(FVisionSource& Source)
 
 void AFogOfWarManager::RegisterSource(AActor* InActor, const float InRadius)
 {
-	if (InActor)
-	{
-		FVisionSource NewSource;
-		NewSource.SourceActor = InActor;
-		NewSource.Radius = InRadius;
-		ActiveVisionSources.Add(NewSource);
-	}
+	if (!IsValid(InActor)) return;
+
+	FVisionSource NewSource;
+	NewSource.SourceActor = InActor;
+	NewSource.Radius = InRadius;
+	ActiveVisionSources.Add(NewSource);
 }
 
 void AFogOfWarManager::UnRegisterSource(AActor* InActor)
 {
-	if (InActor)
-	{
-		ActiveVisionSources.RemoveAll(
-			[InActor](const FVisionSource& Source)
-			{
-				return Source.SourceActor == InActor;
-			});
-	}
+	if (!InActor) return;
+
+	ActiveVisionSources.RemoveAll(
+		[InActor](const FVisionSource& Source)
+		{
+			return Source.SourceActor == InActor;
+		});
 }
 
 void AFogOfWarManager::StartFogOfWar()
@@ -577,7 +520,7 @@ void AFogOfWarManager::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 	DOREPLIFETIME_CONDITION(AFogOfWarManager, CompressedFogData, COND_SkipOwner);
 }
 
-void AFogOfWarManager::Tick(float DeltaSeconds)
+void AFogOfWarManager::Tick(const float DeltaSeconds)
 {
 	bool bChanged = false;
 
@@ -647,7 +590,7 @@ void AFogOfWarManager::InitFogManager()
 	TargetFogGoal.SetNumZeroed(TotalCells);
 
 	// 3. Инициализация серверных данных
-	if (HasAuthority()) // Только на сервере
+	if (HasAuthority())
 	{
 		RawVisibilityData.Empty();
 		RawVisibilityData.SetNumZeroed(TotalCells);
@@ -660,9 +603,8 @@ void AFogOfWarManager::InitFogManager()
 		// Теперь вызываем запекание ландшафта (рейкасты)
 		BakeLevelData();
 	}
-
 	// 4. Инициализация клиентских данных (Визуал)
-	if (GetNetMode() != NM_DedicatedServer)
+	else
 	{
 		PixelBuffer.Empty();
 		PixelBuffer.SetNumUninitialized(TotalCells);
@@ -688,7 +630,7 @@ void AFogOfWarManager::InitTexture()
 
 	PixelBuffer.SetNumUninitialized(MapSize.X * MapSize.Y);
 
-	// Дефолт
+	// Дефолтое состояние
 	for (auto& Color : PixelBuffer)
 	{
 		Color = FColor::Black;
@@ -707,7 +649,6 @@ void AFogOfWarManager::InitTexture()
 		FogMaterialInstance->SetTextureParameterValue(FogMaskParameterName, FogTexture);
 
 		// 3. Добавляем его в настройки глобального PostProcess
-		// Для этого ищем на сцене PostProcessVolume или создаем свой
 		for (TActorIterator<APostProcessVolume> It(GetWorld()); It; ++It)
 		{
 			APostProcessVolume* PPVolume = *It;

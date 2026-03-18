@@ -67,6 +67,11 @@ public:
 	/** Получить менеджер для указанной команды (Thread-safe) */
 	static AFogOfWarManager* Get(const UObject* WorldContextObject, const uint8 TeamID = -1);
 
+	// TODO: Временно, Вынести в отдельный класс
+	/** Выдать противоположную команду */
+	UFUNCTION()
+	static EMDTeam GetEnemyTeam(EMDTeam InTeam);
+
 	// --- Основные методы -------------------------------------------------------
 	/** Инициализация менеджера (вызывается в BeginPlay) */
 	void InitFogManager();
@@ -172,7 +177,7 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void Tick(float DeltaSeconds) override;
-	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual bool IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const override;
 
 	/* ============================================================================
@@ -208,7 +213,7 @@ private:
 	/** Массив статических препятсвий */
 	TArray<bool> StaticObstacles;
 
-	/** Массив для репликации (Биты) */
+	/** Массив для репликации */
 	UPROPERTY(ReplicatedUsing = OnRep_CompressedFog)
 	TArray<uint32> CompressedFogData;
 
@@ -229,12 +234,12 @@ private:
 
 	// --- Данные только для клиента ---------------------------------------------
 
-	/** Массив для текстуры на клиенте (RGBA) */
-	TArray<FColor> PixelBuffer;
-
 	/** Подготовка текстуры в классе менеджера */
 	UPROPERTY()
 	UTexture2D* FogTexture;
+
+	/** Массив для текстуры на клиенте (RGBA) */
+	TArray<FColor> PixelBuffer;
 
 	/** Специальная структура для обновления регионов текстуры */
 	TUniquePtr<FUpdateTextureRegion2D> TextureRegion;
@@ -280,7 +285,7 @@ private:
 
 	// --- Хелперы ---------------------------------------------------------------
 	/** Получить индекс из координат сетки */
-	FORCEINLINE int32 GetIndex(FIntPoint GridCoords) const
+	FORCEINLINE int32 GetIndex(const FIntPoint GridCoords) const
 	{
 		return GridCoords.X + GridCoords.Y * MapSize.X;
 	}
@@ -321,11 +326,6 @@ private:
 	// --- Битовые операции ---
 	static constexpr int32 BITS_PER_WORD = 32;
 	static constexpr int32 BIT_INDEX_MASK = 32;
-
-public:
-
-	UFUNCTION()
-	static EMDTeam GetEnemyTeam(EMDTeam InTeam);
 
 	/* ============================================================================
 	 *  Для тестирования
