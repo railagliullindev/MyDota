@@ -135,34 +135,42 @@ TArray<UMD_ConnectionManager*> FTeamConnectionListMap::GetVisibleConnectionArray
 		return VisibleConnections;
 	}
 
-	FVector PawnLocation = Pawn->GetActorLocation();
+	// Получаем позицию наблюдателя
+	FVector ObserverLocation = Pawn->GetActorLocation();
 
-	// Проверяем, видит ли этот игрок врагов (например, если он в радиусе обзора)
-	if (FogOfWarManager->IsCellVisible(PawnLocation))
+	// Проверяем, видит ли наблюдатель врагов (его собственная клетка видима)
+	bool bObserverCanSee = FogOfWarManager->IsCellVisible(ObserverLocation);
+
+	if (!bObserverCanSee)
 	{
-		// Ищем всех игроков не своей команды
-		TArray<int32> Teams;
-		GetKeys(Teams);
+		// Если наблюдатель в тумане, он не видит врагов
+		return VisibleConnections;
+	}
 
-		for (int32 OtherTeamID : Teams)
+	// Ищем всех игроков не своей команды
+	TArray<int32> Teams;
+	GetKeys(Teams);
+
+	for (int32 OtherTeamID : Teams)
+	{
+		if (OtherTeamID == Team) continue; // Пропускаем свою команду
+
+		if (const TArray<UMD_ConnectionManager*>* OtherTeamMembers = GetConnectionArrayForTeam(OtherTeamID))
 		{
-			if (OtherTeamID == Team) continue; // Пропускаем свою команду
-
-			if (const TArray<UMD_ConnectionManager*>* OtherTeamMembers = GetConnectionArrayForTeam(OtherTeamID))
+			for (UMD_ConnectionManager* EnemyConnection : *OtherTeamMembers)
 			{
-				for (UMD_ConnectionManager* ConnectionManager : *OtherTeamMembers)
+				if (!EnemyConnection->Pawn.IsValid())
 				{
-					if (!ConnectionManager->Pawn.IsValid())
-					{
-						continue;
-					}
+					continue;
+				}
 
-					// Дополнительная проверка: виден ли конкретный вражеский герой
-					FVector EnemyLocation = ConnectionManager->Pawn->GetActorLocation();
-					if (FogOfWarManager->IsCellVisible(EnemyLocation)) // IsEnemyVisible(EnemyLocation))
-					{
-						VisibleConnections.Add(ConnectionManager);
-					}
+				APawn* EnemyPawn = EnemyConnection->Pawn.Get();
+				FVector EnemyLocation = EnemyPawn->GetActorLocation();
+
+				// Проверяем, виден ли враг через Fog of War
+				if (FogOfWarManager->IsCellVisible(EnemyLocation))
+				{
+					VisibleConnections.Add(EnemyConnection);
 				}
 			}
 		}
@@ -198,7 +206,7 @@ UMD_ReplicationGraph::UMD_ReplicationGraph()
 
 	AlwaysRelevantClasses.Add(AGameState::StaticClass());
 	AlwaysRelevantClasses.Add(APlayerState::StaticClass());
-	AlwaysRelevantClasses.Add(AMD_CharacterBase::StaticClass());
+	// AlwaysRelevantClasses.Add(AMD_CharacterBase::StaticClass());
 	// AlwaysRelevantClasses.Add(AFogOfWarManager::StaticClass());
 }
 
@@ -359,6 +367,43 @@ void UMD_ReplicationGraph::RouteAddNetworkActorToNodes(const FNewReplicatedActor
 		return;
 	}
 
+	if (AMD_CharacterBase* Character = Cast<AMD_CharacterBase>(ActorInfo.GetActor()))
+	{
+		UMD_ConnectionManager* ConnectionManager = GetConnectionManagerFromActor(Character);
+
+		if (ConnectionManager)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("!! RouteAddNetworkActor: Character %s for Team %d, Owner: %s"), *Character->GetName(), ConnectionManager->Team,
+				Character->GetOwner() ? *Character->GetOwner()->GetName() : TEXT("None"));
+
+			if (Character->bOnlyRelevantToOwner)
+			{
+				ConnectionManager->AlwaysRelevantForConnectionNode->NotifyAddNetworkActor(ActorInfo);
+			}
+			else
+			{
+				ConnectionManager->TeamConnectionNode->NotifyAddNetworkActor(ActorInfo);
+
+				if (APawn* Pawn = Cast<APawn>(Character))
+				{
+					ConnectionManager->Pawn = Pawn;
+				}
+			}
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("!! RouteAddNetworkActor: No ConnectionManager for Character %s"), *Character->GetName());
+
+			// Если нет ConnectionManager, добавляем в pending
+			if (Character->GetOwner())
+			{
+				PendingConnectionActors.Add(Character);
+			}
+		}
+
+		return;
+	}
+
 	// Если нет, мы проверяем, принадлежит ли оно к какому-либо соединению.
 	if (UMD_ConnectionManager* ConnectionManager = GetConnectionManagerFromActor(ActorInfo.GetActor()))
 	{
@@ -415,7 +460,7 @@ void UMD_ReplicationGraph::UpdateTeamForConnection(UMD_ConnectionManager* ConnMa
 {
 	if (!ConnManager) return;
 
-	UE_LOG(LogTemp, Warning, TEXT("UpdateTeamForConnection: Setting connection to Team %d"), NewTeam);
+	UE_LOG(LogTemp, Warning, TEXT("!! UpdateTeamForConnection: Connection %s -> Team %d"), *ConnManager->GetName(), NewTeam);
 
 	// Очистка старой команды
 	if (ConnManager->Team != -1)
@@ -449,6 +494,8 @@ void UMD_ReplicationGraph::SetTeamForPlayerController(APlayerController* PlayerC
 {
 	if (PlayerController)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("!! SetTeamForPlayerController: PC %s, Team %d"), *PlayerController->GetName(), Team);
+
 		if (UMD_ConnectionManager* ConnectionManager = GetConnectionManagerFromActor(PlayerController))
 		{
 			const int32 CurrentTeam = ConnectionManager->Team;
@@ -532,13 +579,76 @@ AFogOfWarManager* UMD_ReplicationGraph::GetFogManager(uint8 TeamID)
 
 UMD_ConnectionManager* UMD_ReplicationGraph::GetConnectionManagerFromActor(const AActor* Actor)
 {
-	if (Actor)
+	if (!Actor) return nullptr;
+
+	// 1. Пробуем получить NetConnection напрямую
+	if (UNetConnection* NetConnection = Actor->GetNetConnection())
 	{
-		if (UNetConnection* NetConnection = Actor->GetNetConnection())
+		return Cast<UMD_ConnectionManager>(FindOrAddConnectionManager(NetConnection));
+	}
+
+	// 2. Если нет прямого соединения, пробуем через Owner
+	if (AActor* Owner = Actor->GetOwner())
+	{
+		if (UNetConnection* OwnerConnection = Owner->GetNetConnection())
 		{
-			if (UMD_ConnectionManager* ConnectionManager = Cast<UMD_ConnectionManager>(FindOrAddConnectionManager(NetConnection)))
+			return Cast<UMD_ConnectionManager>(FindOrAddConnectionManager(OwnerConnection));
+		}
+
+		// 3. Если Owner - PlayerController, пробуем через его PlayerState
+		if (APlayerController* PC = Cast<APlayerController>(Owner))
+		{
+			if (APlayerState* PS = PC->PlayerState)
 			{
-				return ConnectionManager;
+				if (UNetConnection* PSConnection = PS->GetNetConnection())
+				{
+					return Cast<UMD_ConnectionManager>(FindOrAddConnectionManager(PSConnection));
+				}
+			}
+		}
+	}
+
+	// 4. Если Actor - Pawn, пробуем через Controller
+	if (const APawn* Pawn = Cast<APawn>(Actor))
+	{
+		if (AController* Controller = Pawn->GetController())
+		{
+			if (UNetConnection* ControllerConnection = Controller->GetNetConnection())
+			{
+				return Cast<UMD_ConnectionManager>(FindOrAddConnectionManager(ControllerConnection));
+			}
+
+			// Если Controller - PlayerController, пробуем через его PlayerState
+			if (APlayerController* PC = Cast<APlayerController>(Controller))
+			{
+				if (APlayerState* PS = PC->PlayerState)
+				{
+					if (UNetConnection* PSConnection = PS->GetNetConnection())
+					{
+						return Cast<UMD_ConnectionManager>(FindOrAddConnectionManager(PSConnection));
+					}
+				}
+			}
+		}
+	}
+
+	// 5. Если Actor - Controller, пробуем напрямую
+	if (const AController* Controller = Cast<AController>(Actor))
+	{
+		if (UNetConnection* ControllerConnection = Controller->GetNetConnection())
+		{
+			return Cast<UMD_ConnectionManager>(FindOrAddConnectionManager(ControllerConnection));
+		}
+
+		// Если Controller - PlayerController, пробуем через его PlayerState
+		if (const APlayerController* PC = Cast<APlayerController>(Controller))
+		{
+			if (APlayerState* PS = PC->PlayerState)
+			{
+				if (UNetConnection* PSConnection = PS->GetNetConnection())
+				{
+					return Cast<UMD_ConnectionManager>(FindOrAddConnectionManager(PSConnection));
+				}
 			}
 		}
 	}
