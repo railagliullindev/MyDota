@@ -12,7 +12,8 @@
 				"GameplayAbilities",
 				"Engine",
 				"EnhancedInput",
-				"UMG"
+				"UMG",
+				"ReplicationGraph"
 			]
 		}
 	],
@@ -26,6 +27,10 @@
 		},
 		{
 			"Name": "GameplayAbilities",
+			"Enabled": true
+		},
+		{
+			"Name": "ReplicationGraph",
 			"Enabled": true
 		}
 	]

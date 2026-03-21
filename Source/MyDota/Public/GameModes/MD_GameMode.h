@@ -51,8 +51,11 @@ protected:
 	void InProgress();
 	void PostGame();
 
-	void InitializePlayerData(const APlayerController* NewPC) const;
+	void InitializePlayerData(APlayerController* NewPC) const;
 	void SpawnCameraForPlayer(APlayerController* NewPlayer);
+
+	void SpawnFogOfWar();
+	void StartFogOfWar();
 
 	UPROPERTY(EditDefaultsOnly, Category = "Classes")
 	TSubclassOf<APawn> CameraPawnClass;

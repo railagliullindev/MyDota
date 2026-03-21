@@ -104,6 +104,9 @@ public:
 	/** Проверить видимость ячейки (серверная версия) */
 	bool IsCellVisible(const FIntPoint& GridPos) const;
 
+	/** Проверить видимость ячейки (серверная версия) */
+	bool IsCellVisible(const FVector& Location) const;
+
 	/** Проверить видимость ячейки (клиентская версия с плавностью) */
 	bool IsCellVisibleOnClient(const FIntPoint& GridPos) const;
 
@@ -178,7 +181,7 @@ protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-	virtual bool IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const override;
+	// virtual bool IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const override;
 
 	/* ============================================================================
 	 *  Сетевые реплицируемые функции

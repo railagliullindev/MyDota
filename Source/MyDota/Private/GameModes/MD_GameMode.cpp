@@ -6,6 +6,7 @@
 #include "Controllers/MD_PlayerController.h"
 #include "GameFrameworks/MD_GameState.h"
 #include "GameFrameworks/MD_PlayerState.h"
+#include "Network/MD_ReplicationGraph.h"
 #include "Systems/FogOfWar/FogOfWarManager.h"
 
 AMD_GameMode::AMD_GameMode()
@@ -24,19 +25,12 @@ void AMD_GameMode::BeginPlay()
 	GS = GetGameState<AMD_GameState>();
 	checkf(GS, TEXT("Game state is not AMD_GameState"));
 
-	// Спавним менеджер для Radiant
-	RadiantFogManager = GetWorld()->SpawnActor<AFogOfWarManager>(FogManagerClass, FVector::ZeroVector, FRotator::ZeroRotator);
-	if (RadiantFogManager) RadiantFogManager->AssignedTeamID = EMDTeam::Radiant;
-
-	// Спавним менеджер для Dire
-	DireFogManager = GetWorld()->SpawnActor<AFogOfWarManager>(FogManagerClass, FVector::ZeroVector, FRotator::ZeroRotator);
-	if (DireFogManager) DireFogManager->AssignedTeamID = EMDTeam::Dire;
-
 	MoveToNextStage();
 }
 
 void AMD_GameMode::PostLogin(APlayerController* NewPlayer)
 {
+
 	if (MatchStage != EMatchStage::WaitingForPlayers)
 	{
 		// Игрок пытается подключиться не на той стадии - кикаем
@@ -100,7 +94,7 @@ FVector AMD_GameMode::GetBaseLocation(const EMDTeam Team) const
 	return FVector::ZeroVector; // Дефолт
 }
 
-void AMD_GameMode::InitializePlayerData(const APlayerController* NewPC) const
+void AMD_GameMode::InitializePlayerData(APlayerController* NewPC) const
 {
 	AMD_PlayerState* PS = NewPC->GetPlayerState<AMD_PlayerState>();
 	if (!PS || !GS) return;
@@ -110,6 +104,15 @@ void AMD_GameMode::InitializePlayerData(const APlayerController* NewPC) const
 
 	// Обновляем GameState
 	GS->UpdatePlayerTeam(PS, SetTeam);
+
+	// Обновляем ReplicationGraph
+	if (const UNetDriver* NetworkDriver = GetNetDriver())
+	{
+		if (UMD_ReplicationGraph* RepGraph = NetworkDriver->GetReplicationDriver<UMD_ReplicationGraph>())
+		{
+			RepGraph->SetTeamForPlayerController(NewPC, static_cast<int32>(SetTeam));
+		}
+	}
 }
 
 void AMD_GameMode::WaitingForPlayers()
@@ -129,19 +132,31 @@ void AMD_GameMode::PrepareForBattle()
 
 void AMD_GameMode::PreGame()
 {
-	// StartStageTimer(PreGameTime);
+	// Сначала назначаем команды для всех игроков (если ещё не назначены)
+	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+	{
+		AMD_PlayerController* PC = Cast<AMD_PlayerController>(It->Get());
+		if (!PC) continue;
+
+		AMD_PlayerState* PS = PC->GetPlayerState<AMD_PlayerState>();
+		if (PS && PS->SelectedHeroClass)
+		{
+			// Убеждаемся, что команда назначена в ReplicationGraph
+			if (const UNetDriver* NetworkDriver = GetNetDriver())
+			{
+				if (UMD_ReplicationGraph* RepGraph = NetworkDriver->GetReplicationDriver<UMD_ReplicationGraph>())
+				{
+					RepGraph->SetTeamForPlayerController(PC, static_cast<int32>(PS->GetTeam()));
+				}
+			}
+		}
+	}
+
+	// Теперь спавним FogOfWar (после назначения команд)
+	SpawnFogOfWar();
+	StartFogOfWar();
 
 	StartGameClock();
-
-	if (RadiantFogManager && DireFogManager)
-	{
-		RadiantFogManager->StartFogOfWar();
-		DireFogManager->StartFogOfWar();
-	}
-	else
-	{
-		UE_LOG(LogGameMode, Error, TEXT("Fog managers not created"));
-	}
 
 	// Проходим по всем контроллерам в матче
 	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
@@ -173,6 +188,15 @@ void AMD_GameMode::PreGame()
 				NewHero->SetPlayerState(PS);
 				PC->SetHero(NewHero);
 			}
+
+			if (const UNetDriver* NetworkDriver = GetNetDriver())
+			{
+				if (UMD_ReplicationGraph* RepGraph = NetworkDriver->GetReplicationDriver<UMD_ReplicationGraph>())
+				{
+					UE_LOG(LogTemp, Warning, TEXT("AMD_GameMode::PreGame %s register on team - %d"), *PC->GetName(), PS->Team);
+					RepGraph->SetTeamForPlayerController(PC, static_cast<uint32>(PS->GetTeam()));
+				}
+			}
 		}
 		else
 		{
@@ -183,6 +207,23 @@ void AMD_GameMode::PreGame()
 
 void AMD_GameMode::InProgress()
 {
+	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+	{
+		AMD_PlayerController* PC = Cast<AMD_PlayerController>(It->Get());
+		if (!PC) continue;
+
+		AMD_PlayerState* PS = PC->GetPlayerState<AMD_PlayerState>();
+		if (!PS) continue;
+
+		if (const UNetDriver* NetworkDriver = GetNetDriver())
+		{
+			if (UMD_ReplicationGraph* RepGraph = NetworkDriver->GetReplicationDriver<UMD_ReplicationGraph>())
+			{
+				UE_LOG(LogTemp, Warning, TEXT("AMD_GameMode::InProgress %s register on team - %d"), *PC->GetName(), PS->Team);
+				RepGraph->SetTeamForPlayerController(PC, static_cast<uint32>(PS->GetTeam()));
+			}
+		}
+	}
 }
 
 void AMD_GameMode::PostGame()
@@ -207,6 +248,66 @@ void AMD_GameMode::SpawnCameraForPlayer(APlayerController* NewPlayer)
 	if (CameraPawn)
 	{
 		NewPlayer->Possess(CameraPawn);
+	}
+}
+
+void AMD_GameMode::SpawnFogOfWar()
+{
+	/***********************************************************************/
+	// Спавним менеджер для Radiant с использованием Deferred
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.Owner = this;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	RadiantFogManager = GetWorld()->SpawnActorDeferred<AFogOfWarManager>(FogManagerClass, FTransform::Identity, this, nullptr, ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+
+	if (RadiantFogManager)
+	{
+		// Устанавливаем свойства ДО завершения спавна
+		RadiantFogManager->AssignedTeamID = EMDTeam::Radiant;
+		RadiantFogManager->SetReplicates(true);
+
+		// Завершаем спавн - теперь RouteAddNetworkActorToNodes увидит правильный TeamID
+		RadiantFogManager->FinishSpawning(FTransform::Identity);
+	}
+
+	// Аналогично для Dire
+	DireFogManager = GetWorld()->SpawnActorDeferred<AFogOfWarManager>(FogManagerClass, FTransform::Identity, this, nullptr, ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+
+	if (DireFogManager)
+	{
+		DireFogManager->AssignedTeamID = EMDTeam::Dire;
+		DireFogManager->SetReplicates(true);
+		DireFogManager->FinishSpawning(FTransform::Identity);
+	}
+	/***********************************************************************/
+
+	/*// Спавним менеджер для Radiant
+	RadiantFogManager = GetWorld()->SpawnActorDeferred<AFogOfWarManager>(FogManagerClass, FTransform::Identity, this, nullptr, ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+	if (RadiantFogManager)
+	{
+		RadiantFogManager->AssignedTeamID = EMDTeam::Radiant;
+		RadiantFogManager->FinishSpawning(FTransform::Identity);
+	}
+	// Спавним менеджер для Dire
+	DireFogManager = GetWorld()->SpawnActorDeferred<AFogOfWarManager>(FogManagerClass, FTransform::Identity, this, nullptr, ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+	if (DireFogManager)
+	{
+		DireFogManager->AssignedTeamID = EMDTeam::Dire;
+		DireFogManager->FinishSpawning(FTransform::Identity);
+	}*/
+}
+
+void AMD_GameMode::StartFogOfWar()
+{
+	if (RadiantFogManager && DireFogManager)
+	{
+		RadiantFogManager->StartFogOfWar();
+		DireFogManager->StartFogOfWar();
+	}
+	else
+	{
+		UE_LOG(LogGameMode, Error, TEXT("Fog managers not created"));
 	}
 }
 

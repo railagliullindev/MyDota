@@ -6,12 +6,13 @@
 #include "GameFrameworks/MD_GameState.h"
 #include "MyDota/MyDota.h"
 #include "Net/UnrealNetwork.h"
-#include "Systems/FogOfWar/FogOfWarTeamInterface.h"
 
 AFogOfWarManager::AFogOfWarManager()
 {
 	bReplicates = true;
 	bAlwaysRelevant = false;
+	// AActor::SetNetAddressable();
+
 	NetPriority = 3.0f;
 
 	PrimaryActorTick.bCanEverTick = true;
@@ -325,6 +326,12 @@ bool AFogOfWarManager::IsCellVisible(const FIntPoint& GridPos) const
 	return false;
 }
 
+bool AFogOfWarManager::IsCellVisible(const FVector& Location) const
+{
+	const FIntPoint GridPos = WorldToGrid(Location);
+	return IsCellVisible(GridPos);
+}
+
 bool AFogOfWarManager::IsCellVisibleOnClient(const FIntPoint& GridPos) const
 {
 	const int32 Index = GridPos.X + GridPos.Y * MapSize.X;
@@ -362,14 +369,14 @@ FVector AFogOfWarManager::GridToWorld(const FIntPoint& GridCoords) const
 	return WorldPos + FVector(GridCellSize / 2, GridCellSize / 2, WorldPos.Z);
 }
 
-bool AFogOfWarManager::IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const
+/*bool AFogOfWarManager::IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const
 {
 	if (const IFogOfWarTeamInterface* ViewerTeam = Cast<IFogOfWarTeamInterface>(RealViewer))
 	{
 		return ViewerTeam->GetTeam() == this->AssignedTeamID;
 	}
 	return false;
-}
+}*/
 
 void AFogOfWarManager::CalculateFogOfWar()
 {

@@ -24,7 +24,8 @@ public class MyDota : ModuleRules
 			"Slate",
 			"SlateCore",
 			"NetCore",
-			"DeveloperSettings"
+			"DeveloperSettings",
+			"ReplicationGraph"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });

@@ -37,7 +37,7 @@ public:
 	virtual EMDTeam GetTeam() const override;
 	virtual FGenericTeamId GetGenericTeamId() const override;
 
-	virtual bool IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const override;
+	// virtual bool IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const override;
 
 	void SetPlayerState(AMD_PlayerState* InPs);
 

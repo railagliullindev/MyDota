@@ -247,7 +247,7 @@ FGenericTeamId AMD_CharacterBase::GetGenericTeamId() const
 	return FGenericTeamId(static_cast<uint8>(GetTeam()));
 }
 
-bool AMD_CharacterBase::IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const
+/*bool AMD_CharacterBase::IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const
 {
 	const IFogOfWarTeamInterface* ViewerTeam = Cast<const IFogOfWarTeamInterface>(RealViewer);
 	AFogOfWarManager* FogManager = AFogOfWarManager::Get(this, static_cast<uint8>(ViewerTeam->GetTeam()));
@@ -263,7 +263,7 @@ bool AMD_CharacterBase::IsNetRelevantFor(const AActor* RealViewer, const AActor*
 	}
 
 	return false;
-}
+}*/
 
 void AMD_CharacterBase::SetPlayerState(AMD_PlayerState* InPs)
 {
