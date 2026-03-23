@@ -6,6 +6,7 @@
 #include "GameFrameworks/MD_GameState.h"
 #include "MyDota/MyDota.h"
 #include "Net/UnrealNetwork.h"
+#include "Systems/FogOfWar/FogOfWarTeamInterface.h"
 
 AFogOfWarManager::AFogOfWarManager()
 {
@@ -371,8 +372,11 @@ FVector AFogOfWarManager::GridToWorld(const FIntPoint& GridCoords) const
 
 /*bool AFogOfWarManager::IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const
 {
+	UE_LOG(LogTemp, Warning, TEXT("RealViewer - %s, ViewTarget - %s"), *RealViewer->GetName(), *ViewTarget->GetName());
+
 	if (const IFogOfWarTeamInterface* ViewerTeam = Cast<IFogOfWarTeamInterface>(RealViewer))
 	{
+		UE_LOG(LogTemp, Warning, TEXT("%hdd) %s - Is my team ? %s"), AssignedTeamID, *RealViewer->GetName(), ViewerTeam->GetTeam() == this->AssignedTeamID ? TEXT("True") : TEXT("False"));
 		return ViewerTeam->GetTeam() == this->AssignedTeamID;
 	}
 	return false;

@@ -25,6 +25,45 @@ void UReplicationGraphNode_AlwaysRelevant_WithPending::PrepareForReplication()
 	}
 }
 
+void UReplicationGraphNode_FogOfWarManager::GatherActorListsForConnection(const FConnectionGatherActorListParameters& Params)
+{
+	const UMD_ConnectionManager* ConnectionManager = Cast<UMD_ConnectionManager>(&Params.ConnectionManager);
+
+	if (!ConnectionManager || ConnectionManager->TeamId == -1)
+	{
+		return;
+	}
+
+	const uint8 TeamID = static_cast<uint8>(ConnectionManager->TeamId);
+
+	if (AFogOfWarManager* TeamFog = TeamFogManagers.FindRef(TeamID))
+	{
+		FActorRepListRefView RepList;
+		RepList.Add(TeamFog);
+		Params.OutGatheredReplicationLists.AddReplicationActorList(RepList);
+
+		// Опционально: лог для отладки
+		UE_LOG(LogTemp, Log, TEXT("FogNode: Adding FogManager for Team %d to connection %s"), TeamID, *ConnectionManager->GetName());
+	}
+}
+
+void UReplicationGraphNode_FogOfWarManager::RegisterFogManager(uint8 TeamId, AFogOfWarManager* FogManager)
+{
+	if (FogManager && !TeamFogManagers.Contains(TeamId))
+	{
+		TeamFogManagers.Add(TeamId, FogManager);
+		UE_LOG(LogTemp, Log, TEXT("FogNode: Registered FogManager for Team %d"), TeamId);
+	}
+}
+
+void UReplicationGraphNode_FogOfWarManager::UnregisterFogManager(uint8 TeamID)
+{
+	if (TeamFogManagers.Remove(TeamID) > 0)
+	{
+		UE_LOG(LogTemp, Log, TEXT("FogNode: Unregistered FogManager for Team %d"), TeamID);
+	}
+}
+
 //=============================================================================
 // UReplicationGraphNode_AlwaysRelevant_ForTeam
 //=============================================================================
@@ -160,6 +199,8 @@ UMD_ReplicationGraph::UMD_ReplicationGraph()
 
 	AlwaysRelevantClasses.Add(AGameState::StaticClass());
 	AlwaysRelevantClasses.Add(APlayerState::StaticClass());
+
+	// AlwaysRelevantClasses.Add(AFogOfWarManager::StaticClass()); // Добавляем?
 }
 
 void UMD_ReplicationGraph::InitGlobalGraphNodes()
@@ -184,12 +225,16 @@ void UMD_ReplicationGraph::InitConnectionGraphNodes(UNetReplicationGraphConnecti
 		RepGraph->TeamConnectionNode = CreateNewNode<UReplicationGraphNode_AlwaysRelevant_ForTeam>();
 		AddConnectionGraphNode(RepGraph->TeamConnectionNode, ConnectionManager);
 
+		// НОВЫЙ УЗЕЛ: для FogManager
+		RepGraph->FogNode = CreateNewNode<UReplicationGraphNode_FogOfWarManager>();
+		AddConnectionGraphNode(RepGraph->FogNode, ConnectionManager);
+
 		// Пытаемся назначить команду при создании соединения
 		if (RepGraph->NetConnection)
 		{
 			if (APlayerController* PC = RepGraph->NetConnection->GetPlayerController(GetWorld()))
 			{
-				if (const IFogOfWarTeamInterface* TeamAgent = Cast<IFogOfWarTeamInterface>(PC))
+				if (IFogOfWarTeamInterface* TeamAgent = Cast<IFogOfWarTeamInterface>(PC))
 				{
 					UpdateTeamForConnection(RepGraph, static_cast<int32>(TeamAgent->GetTeam()));
 				}
@@ -247,6 +292,7 @@ void UMD_ReplicationGraph::ResetGameWorldState()
 
 void UMD_ReplicationGraph::RouteAddNetworkActorToNodes(const FNewReplicatedActorInfo& ActorInfo, FGlobalActorReplicationInfo& GlobalInfo)
 {
+
 	// 1. Глобально релевантные акторы
 	for (const auto& Class : AlwaysRelevantClasses)
 	{
@@ -257,13 +303,36 @@ void UMD_ReplicationGraph::RouteAddNetworkActorToNodes(const FNewReplicatedActor
 		}
 	}
 
-	// 2. FogOfWarManager - добавляем к соединениям своей команды
 	if (AFogOfWarManager* FogManager = Cast<AFogOfWarManager>(ActorInfo.GetActor()))
+	{
+		const uint8 TeamID = static_cast<uint8>(FogManager->AssignedTeamID);
+
+		// Кэшируем
+		CachedFogManagers.Add(TeamID, FogManager);
+
+		// Регистрируем в узлах всех соединений этой команды
+		for (UNetReplicationGraphConnection* GraphConnection : Connections)
+		{
+			if (UMD_ConnectionManager* ConnManager = Cast<UMD_ConnectionManager>(GraphConnection))
+			{
+				if (ConnManager->TeamId == static_cast<int32>(TeamID))
+				{
+					ConnManager->FogNode->RegisterFogManager(TeamID, FogManager);
+				}
+			}
+		}
+
+		return;
+	}
+
+	// 2. FogOfWarManager - добавляем к соединениям своей команды
+	/*if (AFogOfWarManager* FogManager = Cast<AFogOfWarManager>(ActorInfo.GetActor()))
 	{
 		const uint8 TeamID = static_cast<uint8>(FogManager->AssignedTeamID);
 
 		CachedFogManagers.Add(TeamID, FogManager);
 
+		// ПРОБЛЕМА: Добавляем FogManager во ВСЕ соединения своей команды
 		// Добавляем FogManager во все существующие соединения этой команды
 		if (TArray<UMD_ConnectionManager*>* TeamConnections = TeamConnectionListMap.GetConnectionArrayForTeam(TeamID))
 		{
@@ -276,7 +345,7 @@ void UMD_ReplicationGraph::RouteAddNetworkActorToNodes(const FNewReplicatedActor
 			}
 		}
 		return;
-	}
+	}*/
 
 	// 3. Герои - добавляем к соединению владельца
 	if (AMD_CharacterBase* Character = Cast<AMD_CharacterBase>(ActorInfo.GetActor()))
@@ -361,6 +430,30 @@ void UMD_ReplicationGraph::UpdateTeamForConnection(UMD_ConnectionManager* ConnMa
 {
 	if (!ConnManager) return;
 
+	// Очистка старой команды (без FogManager)
+	if (ConnManager->TeamId != -1)
+	{
+		TeamConnectionListMap.RemoveConnectionFromTeam(ConnManager->TeamId, ConnManager);
+	}
+
+	ConnManager->TeamId = NewTeamId;
+	TeamConnectionListMap.AddConnectionToTeam(NewTeamId, ConnManager);
+
+	// Добавляем FogManager для новой команды (если уже существует)
+	if (NewTeamId != -1)
+	{
+		// Ищем FogManager в уже зарегистрированных
+		// Для этого нам нужно где-то хранить список всех FogManager
+		// Проще всего: при спавне FogManager кэшируем их и здесь добавляем
+
+		// Вариант: ищем через GetFogManager (нужно вернуть CachedFogManagers)
+		if (AFogOfWarManager* TeamFog = GetFogManager(static_cast<uint8>(NewTeamId)))
+		{
+			ConnManager->FogNode->RegisterFogManager(static_cast<uint8>(NewTeamId), TeamFog);
+		}
+	}
+
+	/*
 	// Очистка старой команды
 	if (ConnManager->TeamId != -1)
 	{
@@ -381,7 +474,7 @@ void UMD_ReplicationGraph::UpdateTeamForConnection(UMD_ConnectionManager* ConnMa
 		{
 			ConnManager->TeamConnectionNode->NotifyAddNetworkActor(FNewReplicatedActorInfo(TeamFog));
 		}
-	}
+	}*/
 }
 
 void UMD_ReplicationGraph::SetTeamForPlayerController(APlayerController* PlayerController, int32 TeamId)

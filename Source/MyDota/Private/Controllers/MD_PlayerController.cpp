@@ -97,7 +97,7 @@ void AMD_PlayerController::SetMatchMode_Implementation(EMatchStage InMatchStage)
 void AMD_PlayerController::OnUnitVisibilityChanged(AActor* Actor, bool bArg)
 {
 	// Только вражеские Actor'ы, своих мы всегда видим
-	Actor->SetActorHiddenInGame(!bArg);
+	// Actor->SetActorHiddenInGame(!bArg);
 }
 
 void AMD_PlayerController::BeginPlay()

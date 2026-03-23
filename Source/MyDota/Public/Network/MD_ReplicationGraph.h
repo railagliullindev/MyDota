@@ -34,6 +34,34 @@ protected:
 	virtual void PrepareForReplication() override;
 };
 
+/**
+ * Специальный узел для репликации FogOfWarManager.
+ * Добавляет FogManager только для соединений своей команды.
+ * Это гарантирует, что FogManager никогда не попадёт к вражескому клиенту,
+ * даже когда реплицируется ConnectionManager врага.
+ */
+UCLASS()
+class UReplicationGraphNode_FogOfWarManager : public UReplicationGraphNode
+{
+	GENERATED_BODY()
+
+public:
+
+	virtual void GatherActorListsForConnection(const FConnectionGatherActorListParameters& Params) override;
+
+	/** Зарегистрировать FogManager для команды */
+	void RegisterFogManager(uint8 TeamId, AFogOfWarManager* FogManager);
+
+	/** Удалить FogManager команды */
+	void UnregisterFogManager(uint8 TeamID);
+
+private:
+
+	/** FogManager для каждой команды */
+	UPROPERTY()
+	TMap<uint8, AFogOfWarManager*> TeamFogManagers;
+};
+
 //=============================================================================
 // UReplicationGraphNode_AlwaysRelevant_ForTeam
 //=============================================================================
@@ -87,6 +115,10 @@ public:
 	/** Узел для акторов, релевантных команде */
 	UPROPERTY()
 	UReplicationGraphNode_AlwaysRelevant_ForTeam* TeamConnectionNode;
+
+	/** Узел для FogOfWarManager (только своей команды) */
+	UPROPERTY()
+	UReplicationGraphNode_FogOfWarManager* FogNode;
 
 	//-----------------------------------------------------------------------
 	// Данные соединения
@@ -229,6 +261,9 @@ private:
 	/** Узел для глобально релевантных акторов */
 	UPROPERTY()
 	UReplicationGraphNode_AlwaysRelevant_WithPending* AlwaysRelevantNode;
+
+	UPROPERTY()
+	UReplicationGraphNode_FogOfWarManager* FogNode;
 
 	/** Акторы, ожидающие подключения */
 	UPROPERTY()
