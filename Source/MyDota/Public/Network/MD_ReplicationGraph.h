@@ -258,12 +258,12 @@ private:
 	/** Классы акторов, реплицируемых всем клиентам */
 	TArray<UClass*> AlwaysRelevantClasses;
 
+	/** Классы акторов, игнор */
+	TArray<UClass*> IgnoreReplicatesClasses;
+
 	/** Узел для глобально релевантных акторов */
 	UPROPERTY()
 	UReplicationGraphNode_AlwaysRelevant_WithPending* AlwaysRelevantNode;
-
-	UPROPERTY()
-	UReplicationGraphNode_FogOfWarManager* FogNode;
 
 	/** Акторы, ожидающие подключения */
 	UPROPERTY()

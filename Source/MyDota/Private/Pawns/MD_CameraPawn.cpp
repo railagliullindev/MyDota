@@ -18,6 +18,9 @@
 AMD_CameraPawn::AMD_CameraPawn()
 	: SnapSpeed(30.f)
 {
+	// Отключаем репликацию — этот pawn не нужен другим клиентам
+	bReplicates = false;
+
 	// Don't rotate character to camera direction
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationYaw = false;
