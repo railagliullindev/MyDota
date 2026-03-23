@@ -79,7 +79,7 @@ void UTeamWidget::InitializeTeamWidget()
 {
 	if (bIsInitialized) return;
 
-	UWorld* World = GetWorld();
+	const UWorld* World = GetWorld();
 	if (!World) return;
 
 	CachedGameState = World->GetGameState<AMD_GameState>();
@@ -102,13 +102,6 @@ void UTeamWidget::InitializeTeamWidget()
 	CachedGameState->OnPlayerHeroSelected.AddDynamic(this, &UTeamWidget::HandlePlayerHeroSelected);
 	CachedGameState->OnPlayerJoinedTeam.AddDynamic(this, &UTeamWidget::HandlePlayerJoinedTeam);
 	CachedGameState->OnPlayerLeftTeam.AddDynamic(this, &UTeamWidget::HandlePlayerLeftTeam);
-
-	// Проверяем, что PlayersInfo пришел
-	UE_LOG(LogTemp, Warning, TEXT("### Delayed init - PlayersInfo count: %d"), CachedGameState->PlayersInfo.Num());
-	for (auto Element : CachedGameState->PlayersInfo)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("### Player - %d, Team - %hhd"), Element.PlayerId, Element.GetTeam());
-	}
 
 	// Radiant
 	TArray<FPlayerTeamInfo> RadiantPlayers = CachedGameState->GetPlayersInTeam(EMDTeam::Radiant);

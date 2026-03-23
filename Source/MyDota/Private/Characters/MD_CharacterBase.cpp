@@ -279,7 +279,7 @@ void AMD_CharacterBase::SetPlayerState(AMD_PlayerState* InPs)
 		{
 			// Регистрируем юнит как источник обзора
 			FogManager->RegisterSource(this, 1200.0f);
-			UE_LOG(LogTemp, Warning, TEXT("Server: Registered %s as Vision Source"), *GetName());
+			UE_LOG(LogTemp, Log, TEXT("Server: Registered %s as Vision Source"), *GetName());
 		}
 		else
 		{
@@ -374,8 +374,6 @@ FGameplayEffectSpecHandle AMD_CharacterBase::MakeDamageSpec(TSubclassOf<UGamepla
 // CLIENT only
 void AMD_CharacterBase::OnRep_PlayerState()
 {
-	UE_LOG(LogTemp, Warning, TEXT("[ %s ] OnRep_PlayerState"), *GetName());
-
 	if (!PS) return;
 	Super::OnRep_PlayerState();
 
@@ -385,5 +383,4 @@ void AMD_CharacterBase::OnRep_PlayerState()
 void AMD_CharacterBase::OnRep_Owner()
 {
 	Super::OnRep_Owner();
-	// InitAbilitySystem();
 }

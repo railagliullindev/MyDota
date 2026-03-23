@@ -29,7 +29,6 @@ void AMD_ActorsBase::BeginPlay()
 		{
 			// Регистрируем юнит как источник обзора
 			FogManager->RegisterSource(this, 300.0f);
-			UE_LOG(LogTemp, Warning, TEXT("Server: Registered %s as Vision Source"), *GetName());
 		}
 		else
 		{

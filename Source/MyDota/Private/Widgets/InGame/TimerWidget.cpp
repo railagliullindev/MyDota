@@ -27,7 +27,6 @@ void UTimerWidget::OnGameTimeChanged()
 {
 	CurrentGameTime = CachedGS->GetServerWorldTimeSeconds();
 	GameTargetTime = CachedGS->MatchStartTime;
-	UE_LOG(LogTemp, Warning, TEXT("UTimerWidget::OnGameTimeChanged() %f "), GameTargetTime);
 }
 
 void UTimerWidget::TimeTick()

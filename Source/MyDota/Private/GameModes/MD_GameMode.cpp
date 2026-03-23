@@ -49,15 +49,14 @@ void AMD_GameMode::PostLogin(APlayerController* NewPlayer)
 
 void AMD_GameMode::Logout(AController* Exiting)
 {
-	UE_LOG(LogTemp, Warning, TEXT("@@@ LOGOUT %s"), *Exiting->GetName());
+	UE_LOG(LogTemp, Verbose, TEXT("LOGOUT %s"), *Exiting->GetName());
 
-	if (APlayerController* PC = Cast<APlayerController>(Exiting))
+	if (const APlayerController* PC = Cast<APlayerController>(Exiting))
 	{
 		if (APlayerState* PS = PC->GetPlayerState<APlayerState>())
 		{
 			if (GS)
 			{
-				// Удаляем игрока через GameState (вызовет делегаты!)
 				GS->RemovePlayer(PS);
 			}
 		}
@@ -193,7 +192,6 @@ void AMD_GameMode::PreGame()
 			{
 				if (UMD_ReplicationGraph* RepGraph = NetworkDriver->GetReplicationDriver<UMD_ReplicationGraph>())
 				{
-					UE_LOG(LogTemp, Warning, TEXT("AMD_GameMode::PreGame %s register on team - %d"), *PC->GetName(), PS->Team);
 					RepGraph->SetTeamForPlayerController(PC, static_cast<uint32>(PS->GetTeam()));
 				}
 			}
@@ -219,7 +217,7 @@ void AMD_GameMode::InProgress()
 		{
 			if (UMD_ReplicationGraph* RepGraph = NetworkDriver->GetReplicationDriver<UMD_ReplicationGraph>())
 			{
-				UE_LOG(LogTemp, Warning, TEXT("AMD_GameMode::InProgress %s register on team - %d"), *PC->GetName(), PS->Team);
+				UE_LOG(LogTemp, Log, TEXT("AMD_GameMode::InProgress %s register on team - %d"), *PC->GetName(), PS->Team);
 				RepGraph->SetTeamForPlayerController(PC, static_cast<uint32>(PS->GetTeam()));
 			}
 		}
@@ -353,7 +351,7 @@ void AMD_GameMode::MoveToNextStage()
 	EMatchStage NewStage = static_cast<EMatchStage>(NextIndex);
 	MatchStage = NewStage;
 
-	UE_LOG(LogTemp, Warning, TEXT("Update MatchStage - %hhd"), MatchStage)
+	UE_LOG(LogTemp, Log, TEXT("Update MatchStage - %hhd"), MatchStage)
 
 	// Реплицируем стейт через GameState
 	GS->MatchStage = NewStage;
