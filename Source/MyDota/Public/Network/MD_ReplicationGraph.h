@@ -35,10 +35,8 @@ protected:
 };
 
 /**
- * Специальный узел для репликации FogOfWarManager.
- * Добавляет FogManager только для соединений своей команды.
- * Это гарантирует, что FogManager никогда не попадёт к вражескому клиенту,
- * даже когда реплицируется ConnectionManager врага.
+ * Простой узел для FogOfWarManager.
+ * Отдаёт FogManager только своей команде.
  */
 UCLASS()
 class UReplicationGraphNode_FogOfWarManager : public UReplicationGraphNode
@@ -49,17 +47,14 @@ public:
 
 	virtual void GatherActorListsForConnection(const FConnectionGatherActorListParameters& Params) override;
 
-	/** Зарегистрировать FogManager для команды */
-	void RegisterFogManager(uint8 TeamId, AFogOfWarManager* FogManager);
-
-	/** Удалить FogManager команды */
-	void UnregisterFogManager(uint8 TeamID);
+	/** Установить FogManager для этого узла */
+	void SetFogManager(uint8 TeamID, AFogOfWarManager* FogManager);
 
 private:
 
-	/** FogManager для каждой команды */
 	UPROPERTY()
-	TMap<uint8, AFogOfWarManager*> TeamFogManagers;
+	AFogOfWarManager* MyFogManager = nullptr;
+	uint8 MyTeamID = 0;
 };
 
 //=============================================================================
@@ -271,6 +266,10 @@ private:
 
 	/** Отложенные запросы на установку команды */
 	TArray<TTuple<int32, APlayerController*>> PendingTeamRequests;
+
+	/** FogManager, которые уже есть на сцене, но ещё не добавлены в узлы */
+	UPROPERTY()
+	TMap<uint8, AFogOfWarManager*> PendingFogManagers;
 
 	/** Маппинг команд к соединениям */
 	FTeamConnectionListMap TeamConnectionListMap;

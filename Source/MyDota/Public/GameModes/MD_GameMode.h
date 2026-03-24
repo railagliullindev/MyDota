@@ -54,14 +54,11 @@ protected:
 	void InitializePlayerData(APlayerController* NewPC) const;
 	void SpawnCameraForPlayer(APlayerController* NewPlayer);
 
-	void SpawnFogOfWar();
+	void FindAndSetupFogManagers();
 	void StartFogOfWar();
 
 	UPROPERTY(EditDefaultsOnly, Category = "Classes")
 	TSubclassOf<APawn> CameraPawnClass;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Classes")
-	TSubclassOf<AFogOfWarManager> FogManagerClass;
 
 	UPROPERTY()
 	AMD_GameState* GS;

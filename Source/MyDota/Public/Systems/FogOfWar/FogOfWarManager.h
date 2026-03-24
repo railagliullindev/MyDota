@@ -127,7 +127,7 @@ public:
 public:
 
 	/** Команда, которой принадлежит этот менеджер */
-	UPROPERTY(Replicated, VisibleAnywhere)
+	UPROPERTY(EditAnywhere, Replicated)
 	EMDTeam AssignedTeamID;
 
 protected:

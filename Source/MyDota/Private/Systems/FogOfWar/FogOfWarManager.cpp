@@ -12,7 +12,7 @@ AFogOfWarManager::AFogOfWarManager()
 {
 	bReplicates = true;
 	bAlwaysRelevant = false;
-	// AActor::SetNetAddressable();
+	bNetLoadOnClient = false; // Не загружаем автоматически
 
 	NetPriority = 3.0f;
 
@@ -29,7 +29,7 @@ AFogOfWarManager* AFogOfWarManager::Get(const UObject* WorldContextObject, const
 	for (TActorIterator<AFogOfWarManager> It(World); It; ++It)
 	{
 		//   На сервере ищем менеджер конкретной команды
-		//   На клиенте AssignedTeamID совпадет только у "своего" менеджера (благодаря IsNetRelevantFor)
+		//   На клиенте AssignedTeamID совпадет только у "своего" менеджера (благодаря Репликации в UMD_ReplicationGraph)
 		if (static_cast<uint8>(It->AssignedTeamID) == TeamID || TeamID == -1)
 		{
 			return *It;
